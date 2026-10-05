@@ -1,0 +1,309 @@
+id: orange
+name: Orange
+glyph: "🟠"
+rank: 2
+title: The grammar
+color: "#E07A3D"
+description: |
+  Operator + motion = action. Then . repeats the action.
+  This belt is why Vim scales.
+principles: [grammar, dot]
+challenges:
+  - id: orange-01-dw
+    title: Operator + word
+    type: transform
+    skills: [operators, words]
+    principle: grammar
+    brief: Delete the first word with dw, not xxxxx.
+    teach: |
+      d is an operator. It waits for a motion.
+
+      dw = delete one word. d$ = delete to end of line. dG = delete to
+      last line. Learn the operators and every motion you know gets more
+      powerful. That is the Grammar Grid.
+    hint: "dw"
+    start: "remove leftover text"
+    target: "leftover text"
+    start_cursor: [1, 1]
+    par: 2
+    solution: "dw"
+
+  - id: orange-02-d-dollar
+    title: Delete to end of line
+    type: transform
+    skills: [operators, line-ends]
+    principle: grammar
+    brief: Keep the label, drop the rest.
+    teach: |
+      d$ and D are the same. The motion is $. The operator is d.
+    hint: "d$ or D"
+    start: "keep leftover"
+    target: "keep"
+    start_cursor: [1, 5]
+    par: 2
+    solution: "d$"
+
+  - id: orange-03-d0
+    title: Delete to start of line
+    type: transform
+    skills: [operators, line-ends]
+    principle: grammar
+    brief: Drop the prefix. Keep "keep".
+    teach: |
+      0 as a motion is exclusive, so d0 leaves the character under the
+      cursor. Stand on the first letter you want to keep.
+    hint: "d0"
+    start: "JUNK keep"
+    target: "keep"
+    start_cursor: [1, 6]
+    par: 2
+    solution: "d0"
+
+  - id: orange-04-cw
+    title: Change a word
+    type: transform
+    skills: [operators, words]
+    principle: grammar
+    brief: Rename foo to baz.
+    teach: |
+      c is d that leaves you in Insert. cw changes a word.
+
+      Esc ends the change. That whole cw-plus-typing is one "." unit.
+    hint: "cw then baz, then Esc."
+    start: "foo bar"
+    target: "baz bar"
+    start_cursor: [1, 1]
+    par: 6
+    solution: "cwbaz<Esc>"
+
+  - id: orange-05-C
+    title: Change to end of line
+    type: transform
+    skills: [operators, line-ends]
+    principle: grammar
+    brief: Replace the value.
+    teach: |
+      C is c$. Stand on the first character you want gone.
+    hint: "C then 2, then Esc."
+    start: "let x = 1"
+    target: "let x = 2"
+    start_cursor: [1, 9]
+    par: 3
+    solution: "C2<Esc>"
+
+  - id: orange-06-d2w
+    title: Counted operator
+    type: transform
+    skills: [operators, counts, words]
+    principle: dot
+    brief: Delete two words at once.
+    teach: |
+      d2w and 2dw are both valid. d2w is "delete, two words".
+      2dw is "twice, delete-word".
+
+      Prefer . when each deletion should undo separately: dwj. not d2w
+      across lines. Choose by how you want undo to feel.
+    hint: "d2w"
+    start: "one two three four"
+    target: "three four"
+    start_cursor: [1, 1]
+    par: 3
+    solution: "d2w"
+
+  - id: orange-07-cc
+    title: Change the whole line
+    type: transform
+    skills: [operators]
+    principle: grammar
+    brief: Replace the line.
+    teach: |
+      cc changes the whole line (and preserves indent).
+      dd deletes it. yy yanks it. See the family?
+    hint: "cc then new, then Esc."
+    start: "old line"
+    target: "new"
+    start_cursor: [1, 1]
+    par: 6
+    solution: "ccnew<Esc>"
+
+  - id: orange-08-dot-change
+    title: Repeat a change
+    type: dot
+    skills: [dot, operators, words]
+    principle: dot
+    brief: Rename every cat. Change once, then .
+    teach: |
+      Don't count, repeat.
+
+      ccdog<Esc> is one change. j. j. replays it on the next lines.
+      Standing at column 1 matters: cc always replaces the whole line, so
+      . does not depend on landing in the middle of the word.
+
+      The Dot Score on the results card watches for .
+    hint: "cc dog Esc, then j.j."
+    start: |
+      cat
+      cat
+      cat
+    target: |
+      dog
+      dog
+      dog
+    start_cursor: [1, 1]
+    par: 10
+    solution: "ccdog<Esc>j.j."
+
+  - id: orange-09-dot-delete
+    title: Repeat a delete
+    type: dot
+    skills: [dot, operators, words]
+    principle: dot
+    brief: Strip the first word on each line with dw and .
+    teach: |
+      dwj. - delete-word, next line, repeat.
+
+      d2w on one line is a count. Across lines, . is the grammar.
+    hint: "dw then j then ."
+    start: |
+      foo bar
+      foo bar
+    target: |
+      bar
+      bar
+    start_cursor: [1, 1]
+    par: 4
+    solution: "dwj."
+
+  - id: orange-10-dG
+    title: Delete to the last line
+    type: transform
+    skills: [operators]
+    principle: grammar
+    brief: Keep the first line. Drop the rest.
+    teach: |
+      G is "last line". dG deletes from here through the end of the file.
+      gg is the first line. Operators take both.
+    hint: "j then dG"
+    start: |
+      keep
+      gone
+      gone
+    target: "keep"
+    start_cursor: [1, 1]
+    par: 3
+    solution: "jdG"
+
+  - id: orange-11-dgg
+    title: Delete to the first line
+    type: transform
+    skills: [operators]
+    principle: grammar
+    brief: Keep the last line. Drop what is above.
+    teach: |
+      From the middle, dgg deletes up through line 1, leaving what is
+      below the range.
+    hint: "Stand on the second junk line and dgg."
+    start: |
+      junk
+      junk
+      keep
+    target: "keep"
+    start_cursor: [2, 1]
+    par: 3
+    solution: "dgg"
+
+  - id: orange-12-yw
+    title: Yank a word
+    type: transform
+    skills: [operators, words, dd-yy-p]
+    principle: grammar
+    brief: Duplicate the first word in front of the second.
+    teach: |
+      y is the third operator in the holy trinity: d c y.
+
+      yw yanks a word. p pastes it. You get two copies without retyping.
+    hint: "yw then w then P"
+    start: "go gopher"
+    target: "go go gopher"
+    start_cursor: [1, 1]
+    par: 4
+    solution: "ywwP"
+
+  - id: orange-13-ye
+    title: Yank to end of word
+    type: navigate
+    skills: [operators, words]
+    principle: grammar
+    brief: After ye, land on the end of the word (the yank motion).
+    teach: |
+      ye yanks through the last character of the word. e is inclusive.
+      w is exclusive. That difference is why cw is "special" (it acts
+      like ce) and why ye is a favorite for duplicating a token.
+    hint: "e lands on the last letter. This drill just wants e."
+    start: "token rest"
+    start_cursor: [1, 1]
+    target_cursor: [1, 5]
+    par: 1
+    solution: "e"
+
+  - id: orange-14-dot-count-choice
+    title: Don't count, repeat
+    type: dot
+    skills: [dot, counts, operators]
+    principle: dot
+    brief: Delete a word on three lines. Use . so each line undoes alone.
+    teach: |
+      3dd is one undo for three lines. dd. . is three undos.
+
+      Practical Vim's rule: choose between d3w and dw.. by how
+      undo-friendly you want the result. This drill wants the friendly one.
+    hint: "dd then . then ."
+    start: |
+      gone
+      gone
+      gone
+      keep
+    target: "keep"
+    start_cursor: [1, 1]
+    par: 4
+    solution: "dd.."
+
+  - id: orange-15-c-dollar
+    title: Grammar drill - c$
+    type: transform
+    skills: [operators, line-ends]
+    principle: grammar
+    brief: Change the comment into a real sentence.
+    teach: |
+      Any operator times any motion. c$ = change to end. Light up that
+      cell on the Grammar Grid.
+    hint: "Stand at the start of TODO and C."
+    start: "note: TODO"
+    target: "note: done"
+    start_cursor: [1, 7]
+    par: 6
+    solution: "Cdone<Esc>"
+
+  - id: orange-16-grammar-boss
+    title: Boss - rename a function
+    type: boss
+    skills: [operators, words, dot]
+    principle: grammar
+    brief: add becomes sum. Only the name.
+    teach: |
+      Orange kit: d c y plus w e $ 0 G gg, and .
+
+      One cw. Esc. That is the whole edit.
+    hint: "cwsum Esc"
+    start: |
+      func add(x int) int {
+      	return x
+      }
+    target: |
+      func sum(x int) int {
+      	return x
+      }
+    start_cursor: [1, 6]
+    par: 6
+    solution: "cwsum<Esc>"
+    language: go

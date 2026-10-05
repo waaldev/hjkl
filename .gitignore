@@ -1,0 +1,5 @@
+/hjkl
+/dist
+*.db
+.DS_Store
+*.exe

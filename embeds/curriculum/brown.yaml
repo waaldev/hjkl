@@ -1,0 +1,142 @@
+id: brown
+name: Brown
+glyph: "🟤"
+rank: 6
+title: Workspace
+color: "#8B5A2B"
+description: |
+  Buffers, windows, splits, quickfix, :g, :norm.
+  Edits that span a file - then a project.
+principles: [ex-ranges, files]
+challenges:
+  - id: brown-01-global-delete
+    title: :g delete matches
+    type: transform
+    skills: [global]
+    principle: ex-ranges
+    brief: Drop every DROP line.
+    teach: |
+      :g/pat/cmd runs cmd on every matching line.
+      :g/DROP/d deletes them. :v is the inverse (non-matches).
+
+      :g is a scalpel for files you would otherwise macro to death.
+    hint: ":g/DROP/d Enter"
+    start: |
+      keep
+      DROP
+      keep
+      DROP
+    target: |
+      keep
+      keep
+    start_cursor: [1, 1]
+    par: 10
+    solution: ":g/DROP/d<CR>"
+
+  - id: brown-02-normal
+    title: :normal across a range
+    type: transform
+    skills: [global]
+    principle: ex-ranges
+    brief: Prefix every line with # using :norm.
+    teach: |
+      :%norm I#  types Normal-mode keys on each line.
+
+      Macros in parallel: :'<,'>normal @q
+      Macros in series: 22@q
+      Parallel is often faster and aborts per-line.
+    hint: ":%norm I# Enter"
+    start: |
+      one
+      two
+    target: |
+      #one
+      #two
+    start_cursor: [1, 1]
+    par: 10
+    solution: ":%norm I#<CR>"
+
+  - id: brown-03-move
+    title: :m move a line
+    type: transform
+    skills: [ex-ranges]
+    principle: ex-ranges
+    brief: Move the first line below the second.
+    teach: |
+      :m, :t (copy) take ranges. :2m0 moves line 2 to the top.
+      :t. copies the current line below.
+
+      Ex commands shine when the range is easier to name than to paint.
+    hint: ":m1 Enter  (move current line to after line 1 - wait, :m$ or :2m0)"
+    start: |
+      b
+      a
+    target: |
+      a
+      b
+    start_cursor: [1, 1]
+    par: 4
+    solution: ":m$<CR>"
+
+  - id: brown-04-copy
+    title: :t copy a line
+    type: transform
+    skills: [ex-ranges]
+    principle: ex-ranges
+    brief: Copy the line onto the next one.
+    teach: |
+      :t. duplicates the current line (copy to here).
+      Same idea as yyp, in Ex.
+    hint: ":t. Enter"
+    start: line
+    target: |
+      line
+      line
+    start_cursor: [1, 1]
+    par: 4
+    solution: ":t.<CR>"
+
+  - id: brown-05-substitute-file
+    title: :%s whole file
+    type: transform
+    skills: [substitute, ex-ranges]
+    principle: ex-ranges
+    brief: Rename foo everywhere.
+    teach: |
+      :%s/foo/bar/g is the whole-file substitute.
+      Confirm with /c. Repeat last :s with &.
+    hint: ":%s/foo/bar/g Enter"
+    start: |
+      foo
+      x foo
+      foo y
+    target: |
+      bar
+      x bar
+      bar y
+    start_cursor: [1, 1]
+    par: 14
+    solution: ":%s/foo/bar/g<CR>"
+
+  - id: brown-06-workspace-boss
+    title: Boss - :g + :norm
+    type: boss
+    skills: [global, ex-ranges]
+    principle: files
+    brief: Delete comments, then append a semicolon to what remains.
+    teach: |
+      Brown kit: :g, :norm, :t, :m, :%s, buffers and quickfix in real
+      nvim (the coach quests will push you there on your own files).
+
+      :g/^#/d then :%norm A;
+    hint: "Delete # lines with :g, then :%norm A;"
+    start: |
+      keep
+      # drop
+      keep
+    target: |
+      keep;
+      keep;
+    start_cursor: [1, 1]
+    par: 18
+    solution: ":g/^#/d<CR>:%norm A;<CR>"

@@ -1,0 +1,293 @@
+id: green
+name: Green
+glyph: "🟢"
+rank: 3
+title: Precision
+color: "#3D8B5F"
+description: |
+  f t ; , and text objects (iw aw i" a( ip it), plus %.
+  Stop painting selections with v when an object will do.
+principles: [text-objects, operators-over-visual, gn]
+challenges:
+  - id: green-01-f
+    title: Find a character
+    type: transform
+    skills: [find-char]
+    principle: grammar
+    brief: Drop the extension.
+    teach: |
+      f{char} jumps onto {char} on this line. F searches backward.
+      t{char} jumps till (the char before) it. T backward.
+
+      ; repeats the last f/t. , reverses it.
+    hint: "f. then d$"
+    start: "hello.world"
+    target: "hello"
+    start_cursor: [1, 1]
+    par: 4
+    solution: "f.d$"
+
+  - id: green-02-t
+    title: Till a character
+    type: transform
+    skills: [find-char]
+    principle: grammar
+    brief: Delete up to the colon, and the colon.
+    teach: |
+      t is exclusive: it lands on the character before the match.
+      dt: deletes through the letter before :, leaving the colon.
+      df: includes it.
+    hint: "df:"
+    start: "foo:bar"
+    target: "bar"
+    start_cursor: [1, 1]
+    par: 3
+    solution: "df:"
+
+  - id: green-03-semicolon
+    title: Repeat the find
+    type: transform
+    skills: [find-char]
+    principle: grammar
+    brief: Delete every x. Find once, then ; and x.
+    teach: |
+      f searches once. ; does it again. Combined with a delete, you hop
+      down a delimiter list without counting.
+    hint: "fx then x, then ;x;x"
+    start: axbxcx
+    target: abc
+    start_cursor: [1, 1]
+    par: 7
+    solution: "fxx;x;x"
+
+  - id: green-04-comma
+    title: Reverse the find
+    type: navigate
+    skills: [find-char]
+    principle: grammar
+    brief: Find the last dash, then hop backward onto the first.
+    teach: |
+      , plays the last f/t in the opposite direction.
+      f- then $ then , , returns along the same trail.
+    hint: "f- to the first dash is enough for this drill - land on it."
+    start: "a-b-c"
+    start_cursor: [1, 1]
+    target_cursor: [1, 2]
+    par: 2
+    solution: "f-"
+
+  - id: green-05-diw
+    title: Delete inner word
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: Remove hello, leave the spaces.
+    teach: |
+      iw is the inner word. aw is a word (with a neighboring space).
+
+      diw deletes the word. daw deletes the word and a space - usually
+      what you want when removing a token from a sentence.
+
+      Prefer diw to viwd. The visual version does not repeat with .
+    hint: "Stand in hello and diw."
+    start: "say hello now"
+    target: "say  now"
+    start_cursor: [1, 6]
+    par: 3
+    solution: "diw"
+
+  - id: green-06-daw
+    title: Delete a word
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: Remove hello and the extra space.
+    teach: |
+      daw is the sentence-friendly cousin of diw. One space remains
+      between the neighbors.
+    hint: "daw"
+    start: "say hello now"
+    target: "say now"
+    start_cursor: [1, 6]
+    par: 3
+    solution: "daw"
+
+  - id: green-07-ci-quote
+    title: Change inside quotes
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: hello becomes world. Keep the quotes.
+    teach: |
+      i" is inner quotes. a" includes the quotes.
+      ci" changes the contents and leaves you in Insert.
+
+      Works with i' i` i) i] i} i> as well.
+    hint: "ci\"world then Esc"
+    start: "msg := \"hello\""
+    target: "msg := \"world\""
+    start_cursor: [1, 9]
+    par: 9
+    solution: "ci\"world<Esc>"
+    language: go
+
+  - id: green-08-ca-paren
+    title: Delete around parens
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: Strip the argument list entirely.
+    teach: |
+      a( includes the parens. i( is just the insides.
+      da( on foo(bar) leaves foo.
+    hint: "da("
+    start: "foo(bar)"
+    target: "foo"
+    start_cursor: [1, 5]
+    par: 3
+    solution: "da("
+
+  - id: green-09-ci-paren
+    title: Change inside parens
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: bar becomes baz.
+    teach: |
+      ci( is a daily driver on function calls.
+    hint: "ci(baz Esc"
+    start: "foo(bar)"
+    target: "foo(baz)"
+    start_cursor: [1, 5]
+    par: 7
+    solution: "ci(baz<Esc>"
+
+  - id: green-10-percent
+    title: Match the other paren
+    type: navigate
+    skills: [percent]
+    principle: grammar
+    brief: Jump from ( to ).
+    teach: |
+      % jumps to the matching paren, bracket, or brace.
+      d% deletes the whole pair and everything inside.
+    hint: "%"
+    start: "foo(bar)"
+    start_cursor: [1, 4]
+    target_cursor: [1, 8]
+    par: 1
+    solution: "%"
+
+  - id: green-11-dip
+    title: Delete inner paragraph
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: Remove the middle paragraph.
+    teach: |
+      ip inner paragraph. ap a paragraph (with surrounding blanks).
+      Paragraphs are separated by empty lines.
+    hint: "Stand in the middle paragraph and dip."
+    start: |
+      keep
+
+      delete
+      this
+
+      keep
+    target: |
+      keep
+
+
+      keep
+    start_cursor: [3, 1]
+    par: 3
+    solution: "dip"
+
+  - id: green-12-cit
+    title: Change inner tag
+    type: transform
+    skills: [text-objects]
+    principle: text-objects
+    brief: Replace the text inside the HTML tag.
+    teach: |
+      it inner tag. at a tag (including the markup).
+      cit is the HTML/XML cousin of ci".
+    hint: "citnew Esc"
+    start: "<p>old</p>"
+    target: "<p>new</p>"
+    start_cursor: [1, 4]
+    par: 7
+    solution: "citnew<Esc>"
+    language: html
+
+  - id: green-13-dt
+    title: Delete till
+    type: transform
+    skills: [find-char]
+    principle: grammar
+    brief: Keep the filename, drop the path prefix through the last slash.
+    teach: |
+      dt{char} deletes till that char. Combined with f you can carve
+      a line without counting columns.
+    hint: "dT/  - wait, try dtf? This path is path/to/file. df/ twice or 2df/"
+    start: "path/to/file"
+    target: "file"
+    start_cursor: [1, 1]
+    par: 4
+    solution: "2df/"
+
+  - id: green-14-visual-trap
+    title: Operators, not Visual
+    type: transform
+    skills: [text-objects, operators]
+    principle: operators-over-visual
+    brief: Delete the inner word the repeatable way.
+    teach: |
+      viwd works. It is also a trap. Visual edits do not repeat with .
+
+      diw is the same result with a . you can trust. The coach flags
+      viwd-style edits in your real files.
+    hint: "diw - not v i w d"
+    start: "alpha bravo charlie"
+    target: "alpha  charlie"
+    start_cursor: [1, 8]
+    par: 3
+    solution: "diw"
+
+  - id: green-15-gn
+    title: cgn and the dot
+    type: dot
+    skills: [gn, search, dot]
+    principle: gn
+    brief: Replace every foo with bar, one match at a time.
+    teach: |
+      gn is a motion over the last search match.
+
+      /foo then cgnbar Esc . . is search-and-replace you can see.
+      Each . is one match. Stop whenever you like. A Practical Vim
+      favorite for daily work.
+    hint: "/foo Enter, then cgnbar Esc, then . ."
+    start: "foo foo foo"
+    target: "bar bar bar"
+    start_cursor: [1, 1]
+    par: 14
+    solution: "/foo<CR>cgnbar<Esc>.."
+
+  - id: green-16-precision-boss
+    title: Boss - rename a JSON string
+    type: boss
+    skills: [text-objects, find-char]
+    principle: text-objects
+    brief: Change "old" to "new". Leave the rest alone.
+    teach: |
+      Green kit: f t ; ,, iw aw i" a( ip it, %.
+
+      Find the o of old, then ci".
+    hint: "fo then ci\"new Esc"
+    start: "{\"name\": \"old\", \"ok\": true}"
+    target: "{\"name\": \"new\", \"ok\": true}"
+    start_cursor: [1, 1]
+    par: 9
+    solution: "foci\"new<Esc>"
+    language: json

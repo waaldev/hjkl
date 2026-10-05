@@ -1,0 +1,252 @@
+id: white
+name: White
+glyph: "⚪"
+rank: 0
+title: Survive
+color: "#E8E4D0"
+description: |
+  Modes, inserting, saving, hjkl, undo.
+  Leave this belt able to open nvim, edit, and get out alive.
+principles: [modes, chunk-undo]
+challenges:
+  - id: white-01-insert
+    title: Insert a letter
+    type: transform
+    skills: [insert, modes]
+    principle: modes
+    brief: The word is missing an a. Insert it.
+    teach: |
+      Neovim has modes. You start in Normal - that is home.
+
+      i inserts before the cursor. Type, then press Esc to go home.
+      The statusline says -- INSERT -- while you are typing. That is a feature,
+      not a warning.
+    hint: "i inserts before the cursor. Type a, then Esc."
+    start: ht
+    target: hat
+    start_cursor: [1, 2]
+    par: 3
+    solution: "ia<Esc>"
+
+  - id: white-02-append
+    title: Append after the cursor
+    type: transform
+    skills: [insert, modes]
+    principle: modes
+    brief: Add an s after the last letter.
+    teach: |
+      a appends after the cursor. A appends at the end of the line.
+
+      i and a are the same idea with a one-character offset. Pick the one
+      that saves a motion.
+    hint: "a inserts after the character you are on."
+    start: cat
+    target: cats
+    start_cursor: [1, 3]
+    par: 3
+    solution: "as<Esc>"
+
+  - id: white-03-append-eol
+    title: Append at end of line
+    type: transform
+    skills: [insert, modes]
+    principle: modes
+    brief: Punctuate the sentence. Do not walk there with l.
+    teach: |
+      A is "append at end of line". You almost never need $a.
+
+      Same family: I inserts at the first non-blank. 0 then i is the long way.
+    hint: "A jumps to the end and enters Insert in one key."
+    start: hello
+    target: hello!
+    start_cursor: [1, 1]
+    par: 3
+    solution: "A!<Esc>"
+
+  - id: white-04-insert-bol
+    title: Insert at the start
+    type: transform
+    skills: [insert, modes]
+    principle: modes
+    brief: Turn this into a comment.
+    teach: |
+      I inserts at the first non-blank of the line.
+      Chunk the undo: type the prefix, then Esc. u will drop just that prefix.
+    hint: "I then type # and a space."
+    start: hello
+    target: "# hello"
+    start_cursor: [1, 1]
+    par: 4
+    solution: "I# <Esc>"
+
+  - id: white-05-open-below
+    title: Open a line below
+    type: transform
+    skills: [insert, modes]
+    principle: chunk-undo
+    brief: Add world on a new line.
+    teach: |
+      o opens a new line below and enters Insert.
+      O opens above.
+
+      Leave Insert at the end of a thought so u undoes that thought, not
+      the whole buffer.
+    hint: "o then type world, then Esc."
+    start: hello
+    target: |
+      hello
+      world
+    start_cursor: [1, 1]
+    par: 7
+    solution: "oworld<Esc>"
+
+  - id: white-06-open-above
+    title: Open a line above
+    type: transform
+    skills: [insert, modes]
+    principle: chunk-undo
+    brief: Put hello above world.
+    teach: |
+      O is o's twin. Both create a line and put you in Insert.
+
+      Getting stuck in Insert is normal. Esc is always the way home.
+      :q! abandons the file if you ever panic outside hjkl.
+    hint: "O then type hello, then Esc."
+    start: world
+    target: |
+      hello
+      world
+    start_cursor: [1, 1]
+    par: 7
+    solution: "Ohello<Esc>"
+
+  - id: white-07-x
+    title: Delete a character
+    type: transform
+    skills: [x, undo]
+    principle: modes
+    brief: Remove the extra letter. If you go too far, u undoes.
+    teach: |
+      x deletes the character under the cursor. X deletes the one before it.
+
+      u undoes the last change. In Insert, the whole typing chunk is one
+      change - another reason to Esc at natural pauses.
+
+      :w writes the file. :q quits. :q! quits without writing.
+      In these drills, matching the target is enough; hjkl records the win.
+    hint: "Move onto the extra l and press x. u if you panic."
+    start: helllo
+    target: hello
+    start_cursor: [1, 5]
+    par: 1
+    solution: "x"
+
+  - id: white-08-down
+    title: Walk down
+    type: navigate
+    skills: [hjkl]
+    principle: modes
+    brief: Put the cursor on the highlighted line.
+    teach: |
+      h j k l are left, down, up, right. Your fingers never leave home row.
+
+      j is down. k is up. They repeat with a count later; for now, tap.
+    hint: "j j"
+    start: |
+      alpha
+      bravo
+      charlie
+    start_cursor: [1, 1]
+    target_cursor: [3, 1]
+    par: 2
+    solution: "jj"
+
+  - id: white-09-find-the-x
+    title: Find the X
+    type: navigate
+    skills: [hjkl]
+    principle: modes
+    brief: Land on the X. Only hjkl.
+    teach: |
+      Right is l, down is j. Count the steps if you want; later you will
+      learn motions that skip the counting.
+    hint: "Down twice, right twice."
+    start: |
+      abc
+      def
+      ghX
+    start_cursor: [1, 1]
+    target_cursor: [3, 3]
+    par: 4
+    solution: "jjll"
+
+  - id: white-10-left-up
+    title: Back to the start
+    type: navigate
+    skills: [hjkl]
+    principle: modes
+    brief: Return to the first letter.
+    teach: |
+      h and k reverse l and j. After this belt you can move without arrows.
+
+      Arrow keys work in nvim. They also train a worse habit. hjkl keeps
+      your hands on the letters you type with.
+    hint: "h and k until you reach a."
+    start: |
+      abc
+      def
+    start_cursor: [2, 3]
+    target_cursor: [1, 1]
+    par: 3
+    solution: "khh"
+
+  - id: white-11-chunk
+    title: Type, Esc, type again
+    type: transform
+    skills: [insert, modes]
+    principle: chunk-undo
+    brief: Add a bang, then a second line.
+    teach: |
+      Do this as two Insert chunks, not one marathon.
+
+      A!<Esc> then o bye. Each Esc is a seam in the undo history.
+      <C-o> in Insert runs one Normal command without losing the chunk -
+      you will want that later. For now, Esc is enough.
+    hint: "A! then Esc, then o and bye."
+    start: hi
+    target: |
+      hi!
+      bye
+    start_cursor: [1, 1]
+    par: 8
+    solution: "A!<Esc>obye<Esc>"
+
+  - id: white-12-survive
+    title: Boss - survive a typo
+    type: boss
+    skills: [insert, x, hjkl, modes]
+    principle: modes
+    brief: Fix the print and terminate the statement.
+    teach: |
+      White-belt survival kit:
+        i a o I A O   enter Insert
+        Esc           go home
+        hjkl          move
+        x             delete a char
+        u             undo
+        :w :q :q!     write / quit / abandon
+
+      Combine them. No new keys required.
+    hint: "Insert the missing i, then A; to add a semicolon."
+    start: |
+      fn main() {
+          prntln!("hi")
+      }
+    target: |
+      fn main() {
+          println!("hi");
+      }
+    start_cursor: [2, 5]
+    par: 7
+    solution: "lai<Esc>A;<Esc>"
+    language: rust

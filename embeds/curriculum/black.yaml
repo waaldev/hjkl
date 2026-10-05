@@ -1,0 +1,97 @@
+id: black
+name: Black
+glyph: "⚫"
+rank: 7
+title: Mastery
+color: "#9AA0A6"
+description: |
+  Combinations, golf, custom mappings, building your own config.
+  The belt is not an ending. It is permission to invent.
+principles: [grammar, files, macros]
+challenges:
+  - id: black-01-golf-unwrap
+    title: Golf - unwrap parens
+    type: golf
+    skills: [golf, text-objects, percent]
+    principle: grammar
+    brief: foo(bar) becomes foo bar. Shortest repeatable sequence.
+    teach: |
+      Golf scoring: at or under par is eagle-adjacent. Over par still
+      counts as a clear. The results card shows keystrokes vs par.
+
+      Combine objects you already know. % and a( are friends.
+    hint: "f( r space, then f) x"
+    start: "foo(bar)"
+    target: "foo bar"
+    start_cursor: [1, 1]
+    par: 7
+    solution: "f(r f)x"
+
+  - id: black-02-golf-csv
+    title: Golf - drop the first column
+    type: golf
+    skills: [golf, find-char]
+    principle: grammar
+    brief: Strip the first csv field on each line. Dot allowed.
+    teach: |
+      df, on line one. j. on the rest. Grammar plus golf.
+    hint: "df, then j."
+    start: |
+      a,b,c
+      d,e,f
+    target: |
+      b,c
+      e,f
+    start_cursor: [1, 1]
+    par: 5
+    solution: "df,j."
+
+  - id: black-03-combo
+    title: Combination - cgn across a Go file
+    type: transform
+    skills: [gn, search, golf]
+    principle: gn
+    brief: Rename err to e, every match.
+    teach: |
+      Black belt is combinations, not new keys.
+
+      /err then cgn e Esc . is the daily-work pattern at speed.
+    hint: "/err Enter cgn e Esc ."
+    start: |
+      if err != nil {
+      	return err
+      }
+    target: |
+      if e != nil {
+      	return e
+      }
+    start_cursor: [1, 1]
+    par: 11
+    solution: "/err<CR>cgne<Esc>."
+    language: go
+
+  - id: black-04-mastery-boss
+    title: Boss - messy Markdown
+    type: boss
+    skills: [golf, text-objects, substitute, global]
+    principle: files
+    brief: Promote the heading, drop the DRAFT line, tick the box.
+    teach: |
+      Your own config is the last lesson: mappings should encode
+      motions you actually repeat. Start a vimrc when a keystroke
+      sequence annoys you twice.
+
+      hjkl stays around as daily drills and the coach. The hero
+      part is using this in files that pay the bills.
+    hint: "I# Esc, jdd, then f[ l r x"
+    start: |
+      Title
+      DRAFT
+      - [ ] ship it
+    target: |
+      # Title
+      - [x] ship it
+    start_cursor: [1, 1]
+    par: 12
+    solution: "I# <Esc>jddf[lrx"
+    language: markdown

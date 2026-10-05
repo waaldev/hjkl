@@ -1,0 +1,176 @@
+id: purple
+name: Purple
+glyph: "🟣"
+rank: 5
+title: Power
+color: "#7A4E9D"
+description: |
+  Visual and block mode, registers, macros, :s, ranges.
+  The paste-lost-my-yank bug lives here - and so does the fix.
+principles: [registers, macros, ex-ranges, operators-over-visual]
+challenges:
+  - id: purple-01-visual-line
+    title: Linewise visual delete
+    type: transform
+    skills: [visual]
+    principle: operators-over-visual
+    brief: Delete two lines with V. Prefer 2dd in real life.
+    teach: |
+      V is linewise Visual. v is characterwise. Ctrl-v is block.
+
+      Visual is great for seeing a range. It is worse for repeating.
+      After this taste, prefer operators.
+    hint: "V j d"
+    start: |
+      gone
+      gone
+      keep
+    target: "keep"
+    start_cursor: [1, 1]
+    par: 3
+    solution: "Vjd"
+
+  - id: purple-02-substitute
+    title: Substitute on a line
+    type: transform
+    skills: [substitute]
+    principle: ex-ranges
+    brief: foo becomes bar on this line.
+    teach: |
+      :s/foo/bar Enter. Same line only.
+
+      :%s//g whole file. & repeats the last :s. g& repeats globally.
+      \v very-magic search is waiting when patterns get noisy.
+    hint: ":s/foo/bar Enter"
+    start: "foo foo"
+    target: "bar foo"
+    start_cursor: [1, 1]
+    par: 11
+    solution: ":s/foo/bar<CR>"
+
+  - id: purple-03-substitute-g
+    title: Substitute every match
+    type: transform
+    skills: [substitute]
+    principle: ex-ranges
+    brief: Every foo on the line.
+    teach: |
+      The g flag is "all matches on the line", not "the whole file".
+      :%s/foo/bar/g is both: every line, every match.
+    hint: ":s/foo/bar/g Enter"
+    start: "foo foo foo"
+    target: "bar bar bar"
+    start_cursor: [1, 1]
+    par: 13
+    solution: ":s/foo/bar/g<CR>"
+
+  - id: purple-04-yank-register
+    title: The yank register
+    type: transform
+    skills: [registers]
+    principle: registers
+    brief: Duplicate keep-this after throwing the other line away.
+    teach: |
+      yy yanks into "0 AND the unnamed register.
+      dd overwrites the unnamed register - but "0 still has the yank.
+
+      p pastes unnamed (the delete). "0p pastes the yank.
+      This is the "paste lost my yank" bug, and the fix.
+    hint: "yy, j, dd, then \"0p"
+    start: |
+      keep-this
+      throw-away
+    target: |
+      keep-this
+      keep-this
+    start_cursor: [1, 1]
+    par: 8
+    solution: "yyjdd\"0p"
+
+  - id: purple-05-black-hole
+    title: The black hole
+    type: transform
+    skills: [registers]
+    principle: registers
+    brief: Delete junk without clobbering the yank, then paste.
+    teach: |
+      "_d is delete into the black hole. The unnamed register is untouched.
+
+      "_dd then p still pastes what you yanked earlier.
+    hint: "yy, j, \"_dd, then p"
+    start: |
+      keep-this
+      throw-away
+    target: |
+      keep-this
+      keep-this
+    start_cursor: [1, 1]
+    par: 8
+    solution: "yyj\"_ddp"
+
+  - id: purple-06-macro
+    title: A tiny macro
+    type: transform
+    skills: [macros, dot]
+    principle: macros
+    brief: Prefix each line with - .
+    teach: |
+      qa starts recording into register a. q stops.
+
+      Normalize: start at a known column (0).
+      Strike: use repeatable motions (A, not a count of l).
+      Abort: a failed motion stops the macro - that is good.
+
+      @a plays it. 2@a plays it twice. @@ replays the last.
+    hint: "qa I- Esc jq, then j@a"
+    start: |
+      one
+      two
+    target: |
+      - one
+      - two
+    start_cursor: [1, 1]
+    par: 11
+    solution: "qaI- <Esc>jqj@a"
+
+  - id: purple-07-block
+    title: Block visual
+    type: transform
+    skills: [visual]
+    principle: operators-over-visual
+    brief: Insert // at the start of both lines.
+    teach: |
+      Ctrl-v starts block Visual. I inserts at the start of every
+      selected line. Esc commits.
+
+      :'<'>normal I//  is the Ex equivalent - Brown will go there.
+    hint: "Ctrl-v j I// Esc"
+    start: |
+      a = 1
+      b = 2
+    target: |
+      //a = 1
+      //b = 2
+    start_cursor: [1, 1]
+    par: 6
+    solution: "<C-v>jI//<Esc>"
+    language: go
+
+  - id: purple-08-macro-boss
+    title: Boss - normalize, strike, abort
+    type: boss
+    skills: [macros]
+    principle: macros
+    brief: Quote every word on the line using a macro, or cgn if you prefer.
+    teach: |
+      Purple kit: v V Ctrl-v, registers "0 "_, macros, :s.
+
+      A macro: f<space> then i" Esc, or :s/\\w\\+/\"&\"/g.
+
+      Editing a macro later: put the register ("ap), edit, yank back.
+    hint: ":s/\\w\\+/\"&\"/g Enter"
+    start: "alpha bravo"
+    target: "\"alpha\" \"bravo\""
+    start_cursor: [1, 1]
+    par: 14
+    solution: ":s/\\w\\+/\"&\"/g<CR>"

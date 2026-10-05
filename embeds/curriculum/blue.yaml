@@ -1,0 +1,170 @@
+id: blue
+name: Blue
+glyph: "🔵"
+rank: 4
+title: Navigation
+color: "#3A6EA5"
+description: |
+  / ? n N * #, marks, jumplist, H M L, zz, Ctrl-d/u.
+  Cross a file without jjjjjjj.
+principles: [jumps]
+challenges:
+  - id: blue-01-search
+    title: Search forward
+    type: navigate
+    skills: [search]
+    principle: jumps
+    brief: Land on cherry.
+    teach: |
+      / searches forward. ? searches backward. n next, N reverse.
+
+      Type the pattern, then Enter. This is how you stop using jjjjj.
+    hint: "/ch then Enter"
+    start: |
+      apple
+      banana
+      cherry
+    start_cursor: [1, 1]
+    target_cursor: [3, 1]
+    par: 4
+    solution: "/ch<CR>"
+
+  - id: blue-02-n
+    title: Next match
+    type: navigate
+    skills: [search]
+    principle: jumps
+    brief: Skip the first TODO, land on the second.
+    teach: |
+      n repeats the last search in the same direction.
+      Search once, hop many times.
+    hint: "/second Enter"
+    start: |
+      TODO first
+      keep
+      TODO second
+    start_cursor: [1, 1]
+    target_cursor: [3, 6]
+    par: 8
+    solution: "/second<CR>"
+
+  - id: blue-03-star
+    title: Search the word under cursor
+    type: navigate
+    skills: [search]
+    principle: jumps
+    brief: From the first count, jump to the next count.
+    teach: |
+      * searches forward for the word under the cursor. # searches back.
+      No typing the word. No slashes.
+    hint: "*"
+    start: |
+      count := 1
+      name := "x"
+      count := 2
+    start_cursor: [1, 1]
+    target_cursor: [3, 1]
+    par: 1
+    solution: "*"
+    language: go
+
+  - id: blue-04-mark
+    title: Set a mark and return
+    type: navigate
+    skills: [marks, jumps]
+    principle: jumps
+    brief: Mark here, wander, come back.
+    teach: |
+      ma sets mark a. `a jumps to the exact position. 'a jumps to the
+      line. '' toggles the last jump.
+
+      Marks are breadcrumbs you plant yourself.
+    hint: "ma, jj, then `a"
+    start: |
+      here
+      skip
+      skip
+    start_cursor: [1, 1]
+    target_cursor: [1, 1]
+    par: 6
+    solution: "majj`a"
+
+  - id: blue-05-jump-back
+    title: Jumplist back
+    type: navigate
+    skills: [jumps]
+    principle: jumps
+    brief: Search to the bottom, then Ctrl-o back to the start.
+    teach: |
+      Searches, G, gg, marks - they all push the jumplist.
+      Ctrl-o older, Ctrl-i newer. g; / g, walk the changelist.
+      gi resumes the last insert.
+    hint: "G then Ctrl-o"
+    start: |
+      start
+      mid
+      end
+    start_cursor: [1, 1]
+    target_cursor: [1, 1]
+    par: 2
+    solution: "G<C-o>"
+
+  - id: blue-06-search-change
+    title: Search, then change
+    type: transform
+    skills: [search, operators]
+    principle: jumps
+    brief: Find TODO and change it to done.
+    teach: |
+      Motions from search work with operators too: d/foo Enter.
+      Here, find it, then cw.
+    hint: "/TODO Enter, then cwdone Esc"
+    start: |
+      prefix TODO suffix
+    target: |
+      prefix done suffix
+    start_cursor: [1, 1]
+    par: 13
+    solution: "/TODO<CR>cwdone<Esc>"
+
+  - id: blue-07-hash
+    title: Search backward
+    type: navigate
+    skills: [search]
+    principle: jumps
+    brief: From the last foo, jump to the previous one with #.
+    teach: |
+      # is * in reverse. Same word, opposite direction.
+    hint: "#"
+    start: |
+      foo
+      bar
+      foo
+    start_cursor: [3, 1]
+    target_cursor: [1, 1]
+    par: 1
+    solution: "#"
+
+  - id: blue-08-nav-boss
+    title: Boss - land on the return
+    type: navigate
+    skills: [search, jumps]
+    principle: jumps
+    brief: Put the cursor on the return keyword.
+    teach: |
+      Blue kit: / ? n N * #, marks, Ctrl-o / Ctrl-i.
+
+      /ret is enough. Resist jjjjj.
+    hint: "/ret Enter"
+    start: |
+      package main
+      func main() {
+          x := 1
+          y := 2
+          return x + y
+      }
+    start_cursor: [1, 1]
+    target_cursor: [5, 5]
+    par: 5
+    solution: "/ret<CR>"
+    language: go

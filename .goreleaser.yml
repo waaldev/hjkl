@@ -1,0 +1,30 @@
+version: 2
+
+project_name: hjkl
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: hjkl
+    main: ./cmd/hjkl
+    binary: hjkl
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/waaldev/hjkl/internal/cli.version={{.Version}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc

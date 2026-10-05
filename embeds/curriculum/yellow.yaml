@@ -1,0 +1,279 @@
+id: yellow
+name: Yellow
+glyph: "🟡"
+rank: 1
+title: Words and lines
+color: "#E6C229"
+description: |
+  w b e, 0 ^ $, x dd yy p, and counts.
+  Stop walking across a line with lllll.
+principles: [modes, dot]
+challenges:
+  - id: yellow-01-dw
+    title: Delete a word
+    type: transform
+    skills: [words, operators]
+    principle: grammar
+    brief: Remove the first word.
+    teach: |
+      w jumps to the start of the next word.
+      dw deletes from here to there. That pairing is Vim's grammar:
+      operator plus motion.
+    hint: "dw"
+    start: "remove this word now"
+    target: "this word now"
+    start_cursor: [1, 1]
+    par: 2
+    solution: "dw"
+
+  - id: yellow-02-w-then-dw
+    title: Skip, then delete
+    type: transform
+    skills: [words]
+    principle: grammar
+    brief: Delete the middle word.
+    teach: |
+      w is a motion. You can fire it alone to move, or after d/c/y to act.
+
+      From the start, one w lands on "two". dw deletes it and the space.
+    hint: "w then dw"
+    start: "one two three"
+    target: "one three"
+    start_cursor: [1, 1]
+    par: 3
+    solution: "wdw"
+
+  - id: yellow-03-b
+    title: Back a word
+    type: navigate
+    skills: [words]
+    principle: grammar
+    brief: Land on the start of the last word. b, not hhhhh.
+    teach: |
+      b is w in reverse. e lands on the end of a word; ge on the end of
+      the previous one.
+
+      WORD motions (W B E) skip punctuation. word motions (w b e) do not.
+    hint: "b"
+    start: "one two three"
+    start_cursor: [1, 13]
+    target_cursor: [1, 9]
+    par: 1
+    solution: "b"
+
+  - id: yellow-04-e
+    title: End of word
+    type: navigate
+    skills: [words]
+    principle: grammar
+    brief: Land on the last letter of the first word.
+    teach: |
+      e is "end of word". Change-to-end (ce) is a daily-driver: it
+      leaves you in Insert, ready to type the replacement.
+    hint: "e"
+    start: "hello world"
+    start_cursor: [1, 1]
+    target_cursor: [1, 5]
+    par: 1
+    solution: "e"
+
+  - id: yellow-05-zero-dollar
+    title: Ends of the line
+    type: transform
+    skills: [line-ends]
+    principle: grammar
+    brief: Drop everything after keep.
+    teach: |
+      0 first column. ^ first non-blank. $ end of line.
+
+      d$ deletes to the end (D is the same). d0 deletes to the start.
+    hint: "You are on the space. D (or d$) deletes to the end of the line."
+    start: "keep TRAILING JUNK"
+    target: "keep"
+    start_cursor: [1, 5]
+    par: 1
+    solution: "D"
+
+  - id: yellow-06-caret
+    title: First non-blank
+    type: transform
+    skills: [line-ends]
+    principle: grammar
+    brief: Delete the indent, keep the word.
+    teach: |
+      ^ ignores leading whitespace. 0 does not.
+
+      dw from column 1 eats the indent as a "word" of spaces.
+    hint: "0 then dw."
+    start: "    hello"
+    target: "hello"
+    start_cursor: [1, 5]
+    par: 3
+    solution: "0dw"
+
+  - id: yellow-07-dd
+    title: Delete a line
+    type: transform
+    skills: [dd-yy-p]
+    principle: grammar
+    brief: Remove the middle line.
+    teach: |
+      dd deletes the whole line. It is d plus an implied line motion.
+
+      Counts work: 2dd. Prefer j.j. when you want each line to undo
+      separately - that lesson is Orange.
+    hint: "j to the middle line, then dd."
+    start: |
+      keep
+      delete me
+      keep
+    target: |
+      keep
+      keep
+    start_cursor: [1, 1]
+    par: 3
+    solution: "jdd"
+
+  - id: yellow-08-yyp
+    title: Duplicate a line
+    type: transform
+    skills: [dd-yy-p]
+    principle: grammar
+    brief: Yank and paste so the line appears twice.
+    teach: |
+      yy yanks the line. p pastes after the cursor (or below, for lines).
+      P pastes before / above.
+
+      Yank does not delete. Delete (dd, dw, x) also yanks - into the
+      unnamed register. That bites later; Purple covers registers.
+    hint: "yy then p"
+    start: line
+    target: |
+      line
+      line
+    start_cursor: [1, 1]
+    par: 3
+    solution: "yyp"
+
+  - id: yellow-09-swap-lines
+    title: Swap two lines
+    type: transform
+    skills: [dd-yy-p]
+    principle: grammar
+    brief: b should be below a. One delete, one paste.
+    teach: |
+      ddp is a classic: delete this line, paste it below the next one.
+      You just swapped two lines in three keys.
+    hint: "ddp"
+    start: |
+      b
+      a
+    target: |
+      a
+      b
+    start_cursor: [1, 1]
+    par: 3
+    solution: "ddp"
+
+  - id: yellow-10-count-x
+    title: Counted delete
+    type: transform
+    skills: [counts, x]
+    principle: dot
+    brief: Remove the three extra letters.
+    teach: |
+      A count prefixes a command: 3x, 2w, 4j.
+
+      Counts are fine. They also glue the change into one undo.
+      If you might want to undo one-at-a-time, type x.. instead of 3x.
+      Don't count, repeat - when the undo should be friendly.
+    hint: "3x, or x.."
+    start: xxxhello
+    target: hello
+    start_cursor: [1, 1]
+    par: 2
+    solution: "3x"
+
+  - id: yellow-11-count-dd
+    title: Two lines at once
+    type: transform
+    skills: [counts, dd-yy-p]
+    principle: dot
+    brief: Delete both junk lines.
+    teach: |
+      2dd is one undo. dj (delete plus down) is the same two lines.
+
+      You will learn to choose: one chunk, or two undos with ddj. - wait,
+      dd then j then . is two undos. That is Orange's whole personality.
+    hint: "j then 2dd"
+    start: |
+      keep
+      gone
+      gone
+      keep
+    target: |
+      keep
+      keep
+    start_cursor: [1, 1]
+    par: 4
+    solution: "j2dd"
+
+  - id: yellow-12-count-nav
+    title: 3j, not jjj
+    type: navigate
+    skills: [counts, hjkl]
+    principle: dot
+    brief: Jump to the last line with a count.
+    teach: |
+      3j is three downs. The coach will later nag you for jjjjjjj in
+      real files. Start the habit here.
+    hint: "3j"
+    start: |
+      one
+      two
+      three
+      four
+    start_cursor: [1, 1]
+    target_cursor: [4, 1]
+    par: 2
+    solution: "3j"
+
+  - id: yellow-13-D
+    title: Delete to end (D)
+    type: transform
+    skills: [line-ends, operators]
+    principle: grammar
+    brief: Keep the prefix, drop the rest.
+    teach: |
+      D is d$. C is c$. Y is y$ on some setups (nvim: Y is y$ too by default
+      in older vim it was yy - nvim made Y consistent).
+
+      Shortcuts exist when a motion is used constantly.
+    hint: "D, or d$."
+    start: "keep-trailing"
+    target: "keep"
+    start_cursor: [1, 5]
+    par: 1
+    solution: "D"
+
+  - id: yellow-14-words-boss
+    title: Boss - tidy the list
+    type: boss
+    skills: [words, dd-yy-p, counts, line-ends]
+    principle: grammar
+    brief: Duplicate the keeper and drop the two junk lines.
+    teach: |
+      Yellow kit: w b e, 0 ^ $, dd yy p, counts.
+
+      Plan the motions before you mash. The target split is the spec.
+    hint: "yy p, then j and 2dd."
+    start: |
+      keep me
+      junk
+      junk
+    target: |
+      keep me
+      keep me
+    start_cursor: [1, 1]
+    par: 7
+    solution: "yypj2dd"
