@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/waaldev/hjkl/internal/ai"
 	"github.com/waaldev/hjkl/internal/app"
 	"github.com/waaldev/hjkl/internal/curriculum"
 	"github.com/waaldev/hjkl/internal/game"
@@ -32,7 +35,7 @@ func newLearnCmd() *cobra.Command {
 					return err
 				}
 				var ch curriculum.Challenge
-				var ok bool
+				var ok, review bool
 				if len(args) == 1 {
 					if _, found := a.Cat.Belt(args[0]); !found {
 						return failf("unknown belt %q", args[0])
@@ -43,13 +46,16 @@ func newLearnCmd() *cobra.Command {
 					}
 					ch, ok = progress.NextInBelt(a.Cat, args[0], stars)
 				} else {
-					ch, ok = progress.NextChallenge(a.Cat, stars)
+					ch, review, ok = progress.Next(context.Background(), a.Store, a.Cat, time.Now(), rand.Intn)
 				}
 				if !ok {
 					fmt.Println("Nothing left to learn. Try hjkl daily.")
 					return nil
 				}
-				return playOne(a, ch)
+				if review {
+					fmt.Println("Interleaved review: an older skill between new ones.")
+				}
+				return play(a, ch, review)
 			})
 		},
 	}
@@ -141,10 +147,28 @@ func play(a *app.App, ch curriculum.Challenge, review bool) error {
 		if out.Stars == 3 || !isTTY() {
 			return nil
 		}
+		sensei, aiErr := ai.FromConfig(a.Cfg)
 		for {
-			fmt.Print("\n[s] show me   [r] retry   [enter] continue  ")
+			prompt := "\n[s] show me   [r] retry   [enter] continue  "
+			if aiErr == nil {
+				prompt = "\n[s] show me   [r] retry   [?] debrief   [enter] continue  "
+			}
+			fmt.Print(prompt)
 			line, _ := in.ReadString('\n')
 			switch strings.TrimSpace(line) {
+			case "?":
+				if aiErr != nil {
+					fmt.Println("configure an AI provider for debriefs: hjkl ai setup")
+					continue
+				}
+				stars, _ := a.Store.Stars(context.Background())
+				text, err := ai.Debrief(context.Background(), sensei, ch, res, progress.UnlockedSkills(a.Cat, stars))
+				if err != nil {
+					fmt.Println("debrief failed:", err)
+					continue
+				}
+				fmt.Println("\n" + text)
+				continue
 			case "s":
 				if err := runner.Demo(context.Background(), ch, a.Cfg.Nvim); err != nil {
 					return err
@@ -164,7 +188,12 @@ func printResult(ch curriculum.Challenge, res runner.Result, out progress.Outcom
 	if res.OK {
 		status = "CLEAR"
 	}
-	fmt.Printf("\n%s  %s  keys %d / par %d  xp +%d\n", status, starsText(out.Stars), res.KeyCount, ch.Par, out.XP)
+	fmt.Printf("\n%s  %s  keys %d / par %d  %.1fs  xp +%d\n", status, starsText(out.Stars), res.KeyCount, ch.Par, float64(res.DurationMS)/1000, out.XP)
+	if out.Fluent {
+		fmt.Println("fluent - that one is in your fingers")
+	} else if res.OK && out.Stars == 3 {
+		fmt.Println("right keys - next time, faster: speed is how muscle memory shows")
+	}
 	fmt.Printf("you  %s\n", res.Keys)
 	// On a miss the answer stays hidden: try again, or ask to be shown.
 	if res.OK {

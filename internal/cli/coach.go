@@ -73,6 +73,7 @@ func newCoachInstallCmd() *cobra.Command {
     events_path = %q,
     quiet = false,
     hint_throttle_ms = 8000,
+    hint_limit = 5,
   },
   config = function(_, opts)
     require("hjkl.coach").setup(opts)
@@ -80,6 +81,7 @@ func newCoachInstallCmd() *cobra.Command {
 },
 `, dest, events)
 			fmt.Println("\nThen restart nvim. mash jjjjjjj in a real file - a hint should appear.")
+			fmt.Println(":HjklDrill practices the last flagged habit; :HjklSnooze mutes it for a week.")
 			return nil
 		},
 	}
