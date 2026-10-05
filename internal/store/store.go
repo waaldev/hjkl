@@ -73,6 +73,14 @@ func Open(path string) (*Store, error) {
 	return s, nil
 }
 
+// dbTime formats times for storage and for comparisons in SQL. Timestamps
+// are compared as strings, so every value must share one zone and a fixed
+// width: the coach plugin writes UTC while the CLI runs in local time, and
+// RFC3339Nano trims trailing zeros.
+func dbTime(t time.Time) string {
+	return t.UTC().Format("2006-01-02T15:04:05.000000000Z")
+}
+
 func (s *Store) Close() error { return s.db.Close() }
 
 func (s *Store) migrate() error {
@@ -150,7 +158,7 @@ func (s *Store) RecordAttempt(ctx context.Context, a Attempt) (firstClear bool, 
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO attempts (challenge_id, completed_at, ok, keys, key_count, par, stars, xp, duration_ms)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.ChallengeID, a.At.Format(time.RFC3339Nano), boolInt(a.OK), a.Keys, a.KeyCount, a.Par, a.Stars, a.XP, a.DurationMS)
+		a.ChallengeID, dbTime(a.At), boolInt(a.OK), a.Keys, a.KeyCount, a.Par, a.Stars, a.XP, a.DurationMS)
 	if err != nil {
 		return false, err
 	}
@@ -178,11 +186,11 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	}
 	first := firstStr.String
 	if firstClear {
-		first = a.At.Format(time.RFC3339Nano)
+		first = dbTime(a.At)
 	}
 	last := lastStr.String
 	if a.OK {
-		last = a.At.Format(time.RFC3339Nano)
+		last = dbTime(a.At)
 	}
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO progress (challenge_id, best_stars, best_key_count, first_clear_at, last_clear_at, attempts, xp_earned)
@@ -287,7 +295,7 @@ func (s *Store) Streak(ctx context.Context) (Streak, error) {
 func (s *Store) UpsertSRS(ctx context.Context, c SRSCard) error {
 	var last any
 	if c.LastReviewAt != nil {
-		last = c.LastReviewAt.Format(time.RFC3339Nano)
+		last = dbTime(*c.LastReviewAt)
 	}
 	_, err := s.db.ExecContext(ctx, `
 INSERT INTO srs (skill, easiness, interval_days, repetitions, due_at, last_quality, last_review_at)
@@ -299,7 +307,7 @@ ON CONFLICT(skill) DO UPDATE SET
   due_at = excluded.due_at,
   last_quality = excluded.last_quality,
   last_review_at = excluded.last_review_at
-`, c.Skill, c.Easiness, c.IntervalDays, c.Repetitions, c.DueAt.Format(time.RFC3339Nano), c.LastQuality, last)
+`, c.Skill, c.Easiness, c.IntervalDays, c.Repetitions, dbTime(c.DueAt), c.LastQuality, last)
 	return err
 }
 
@@ -321,7 +329,7 @@ func (s *Store) SRS(ctx context.Context, skill string) (SRSCard, bool, error) {
 }
 
 func (s *Store) DueSkills(ctx context.Context, now time.Time, limit int) ([]SRSCard, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT skill, easiness, interval_days, repetitions, due_at, last_quality, last_review_at FROM srs WHERE due_at <= ? ORDER BY due_at ASC LIMIT ?`, now.Format(time.RFC3339Nano), limit)
+	rows, err := s.db.QueryContext(ctx, `SELECT skill, easiness, interval_days, repetitions, due_at, last_quality, last_review_at FROM srs WHERE due_at <= ? ORDER BY due_at ASC LIMIT ?`, dbTime(now), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -370,12 +378,12 @@ func (s *Store) AddCoachEvent(ctx context.Context, e CoachEvent) error {
 		e.Count = 1
 	}
 	_, err := s.db.ExecContext(ctx, `INSERT INTO coach_events (ts, pattern, keys, skill, filetype, count) VALUES (?, ?, ?, ?, ?, ?)`,
-		e.TS.Format(time.RFC3339Nano), e.Pattern, e.Keys, e.Skill, e.Filetype, e.Count)
+		dbTime(e.TS), e.Pattern, e.Keys, e.Skill, e.Filetype, e.Count)
 	return err
 }
 
 func (s *Store) CoachSummary(ctx context.Context, since time.Time) (map[string]int, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT pattern, SUM(count) FROM coach_events WHERE ts >= ? GROUP BY pattern ORDER BY SUM(count) DESC`, since.Format(time.RFC3339Nano))
+	rows, err := s.db.QueryContext(ctx, `SELECT pattern, SUM(count) FROM coach_events WHERE ts >= ? AND pattern != 'used' GROUP BY pattern ORDER BY SUM(count) DESC`, dbTime(since))
 	if err != nil {
 		return nil, err
 	}
@@ -388,6 +396,25 @@ func (s *Store) CoachSummary(ctx context.Context, since time.Time) (map[string]i
 			return nil, err
 		}
 		out[p] = n
+	}
+	return out, rows.Err()
+}
+
+// CoachUsage sums real-world command uses ("used" events) by keys, e.g. ciw.
+func (s *Store) CoachUsage(ctx context.Context, since time.Time) (map[string]int, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT keys, SUM(count) FROM coach_events WHERE ts >= ? AND pattern = 'used' GROUP BY keys`, dbTime(since))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var k string
+		var n int
+		if err := rows.Scan(&k, &n); err != nil {
+			return nil, err
+		}
+		out[k] = n
 	}
 	return out, rows.Err()
 }

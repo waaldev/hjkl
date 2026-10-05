@@ -125,6 +125,9 @@ func playOne(a *app.App, ch curriculum.Challenge) error {
 	}
 	fmt.Printf("\n%s  %s  keys %d / par %d  xp +%d\n", status, starsText(out.Stars), res.KeyCount, ch.Par, out.XP)
 	fmt.Printf("you  %s\npar  %s\n", res.Keys, ch.Solution)
+	if out.Technique != "" {
+		fmt.Println(out.Technique)
+	}
 	if out.DotScore != "" {
 		fmt.Println(out.DotScore)
 	}

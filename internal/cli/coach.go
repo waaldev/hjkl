@@ -96,13 +96,19 @@ func newCoachReportCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				if len(sum) == 0 {
+				if used, _ := a.Store.CoachUsage(ctx, time.Now().Add(-30*24*time.Hour)); len(sum) == 0 && len(used) == 0 {
 					fmt.Println("No coach events yet. hjkl coach install, then edit as usual.")
 					return nil
 				}
 				fmt.Println("last 30 days (counts, never file contents)")
 				for pat, n := range sum {
 					fmt.Printf("  %-20s  %d\n", pat, n)
+				}
+				if used, _ := a.Store.CoachUsage(ctx, time.Now().Add(-30*24*time.Hour)); len(used) > 0 {
+					fmt.Println("\nused in real work")
+					for k, n := range used {
+						fmt.Printf("  %-20s  %d\n", k, n)
+					}
 				}
 				return nil
 			})

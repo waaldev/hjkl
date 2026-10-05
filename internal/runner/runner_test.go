@@ -60,3 +60,23 @@ func TestVerifyRejectsWrongSolution(t *testing.T) {
 		t.Fatal("expected verify to reject a wrong solution")
 	}
 }
+
+func TestVerifyRecordsCommandKeysOnly(t *testing.T) {
+	if _, err := exec.LookPath("nvim"); err != nil {
+		t.Skip("nvim not installed")
+	}
+	ch := curriculum.Challenge{
+		ID: "cmd-keys", Belt: "orange", Title: "Change a word", Type: curriculum.TypeTransform,
+		Start: "foo bar", Target: "yes bar", StartCursor: []int{1, 1}, Par: 6, Solution: "cwyes<Esc>",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	res, err := Verify(ctx, ch, "nvim")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// "yes" was typed in Insert mode, so it must not look like y+e.
+	if res.CmdKeys != "cw" {
+		t.Fatalf("cmd_keys=%q, want %q (keys=%q)", res.CmdKeys, "cw", res.Keys)
+	}
+}

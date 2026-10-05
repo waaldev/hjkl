@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/waaldev/hjkl/internal/curriculum"
+	"github.com/waaldev/hjkl/internal/game"
 	"github.com/waaldev/hjkl/internal/keys"
 	"github.com/waaldev/hjkl/internal/runner"
 )
@@ -50,6 +51,16 @@ func newDevVerifyCmd() *cobra.Command {
 				if err != nil {
 					failed++
 					fmt.Printf("FAIL %v\n", err)
+					continue
+				}
+				if ok, msg, err := game.CheckTechnique(res.CmdKeys, ch.Require, ch.Forbid); err != nil || !ok {
+					failed++
+					fmt.Printf("FAIL technique: %v%s\n", err, msg)
+					continue
+				}
+				if ch.Type != curriculum.TypeNavigate && ch.Target != "" && ch.Target == ch.Start {
+					failed++
+					fmt.Println("FAIL start equals target")
 					continue
 				}
 				want := keys.Count(ch.Solution)

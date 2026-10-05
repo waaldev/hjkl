@@ -75,6 +75,9 @@ local target_cursor = challenge.target_cursor
 local kind = challenge.type or "transform"
 
 local recorded = {}
+-- Keys typed outside Insert/Cmdline. Used for the Grammar Grid and technique
+-- rules so text you type (e.g. "yes") never counts as a command.
+local cmd_recorded = {}
 local started_at = vim.uv.hrtime()
 local finished = false
 local ns = vim.api.nvim_create_namespace("hjkl")
@@ -129,7 +132,21 @@ local function buffer_matches()
   return lines_equal(buf_lines(work_buf), target_lines)
 end
 
+local function in_normal()
+  return vim.api.nvim_get_mode().mode == "n"
+end
+
+-- Modes whose keys are commands rather than typed text.
+local function is_cmd_mode(m)
+  local c = m:sub(1, 1)
+  return c == "n" or c == "v" or c == "V" or c == "\22"
+end
+
 local function won()
+  -- Only Normal mode can win: a change is not finished until <Esc>.
+  if not in_normal() then
+    return false
+  end
   if kind == "navigate" then
     return cursor_matches()
   end
@@ -165,6 +182,7 @@ local function finish(ok, reason)
     ok = ok,
     keys = table.concat(recorded, ""),
     key_count = #recorded,
+    cmd_keys = table.concat(cmd_recorded, ""),
     par = challenge.par or 0,
     duration_ms = duration_ms(),
     buffer = table.concat(buf_lines(work_buf), "\n"),
@@ -257,6 +275,9 @@ vim.on_key(function(_, typed)
     return
   end
   table.insert(recorded, trans)
+  if is_cmd_mode(vim.api.nvim_get_mode().mode) then
+    table.insert(cmd_recorded, trans)
+  end
   if mode == "play" and work_win and vim.api.nvim_win_is_valid(work_win) then
     vim.wo[work_win].winbar = string.format(
       " hjkl │ %s │ %s │ keys %d / par %d │ F1 hint  F10 abort ",
@@ -279,11 +300,9 @@ end
 
 vim.api.nvim_create_autocmd({
   "TextChanged",
-  "TextChangedI",
-  "TextChangedP",
   "CursorMoved",
-  "CursorMovedI",
   "InsertLeave",
+  "ModeChanged",
 }, {
   group = vim.api.nvim_create_augroup("hjkl_check", { clear = true }),
   callback = function()

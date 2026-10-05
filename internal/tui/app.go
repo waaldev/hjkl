@@ -416,6 +416,9 @@ func (m *model) viewResults() string {
 		starsBar(m.outcome.Stars), m.result.KeyCount, ch.Par, m.outcome.XP,
 		mutedStyle.Render("you  "+m.result.Keys+"\npar  "+ch.Solution),
 	)
+	if m.outcome.Technique != "" {
+		body += "\n" + goldStyle.Render(m.outcome.Technique) + "\n"
+	}
 	if m.outcome.DotScore != "" {
 		body += "\n" + goldStyle.Render(m.outcome.DotScore) + "\n"
 	}

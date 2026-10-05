@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/waaldev/hjkl/internal/game"
+	"github.com/waaldev/hjkl/internal/progress"
 	"github.com/waaldev/hjkl/internal/store"
 )
 
@@ -51,6 +53,12 @@ func IngestJSONL(ctx context.Context, st *store.Store, path string) (int, error)
 		if ev.Count == 0 {
 			ev.Count = 1
 		}
+		if ev.Pattern == "used" {
+			if err := applyUsed(ctx, st, ev, ts); err != nil {
+				_ = f.Close()
+				return n, err
+			}
+		}
 		if err := st.AddCoachEvent(ctx, store.CoachEvent{
 			TS: ts, Pattern: ev.Pattern, Keys: ev.Keys, Skill: ev.Skill, Filetype: ev.Filetype, Count: ev.Count,
 		}); err != nil {
@@ -72,4 +80,24 @@ func IngestJSONL(ctx context.Context, st *store.Store, path string) (int, error)
 		}
 	}
 	return n, nil
+}
+
+// usedQuality is the SRS quality for using a skill unprompted in real work:
+// a solid recall, short of a perfect drill.
+const usedQuality = 4
+
+// applyUsed turns real-world use into progress: it lights the Grammar Grid
+// and counts as an SRS review for skills the dojo has already taught.
+func applyUsed(ctx context.Context, st *store.Store, ev fileEvent, ts time.Time) error {
+	for _, pair := range game.LightFromKeys(ev.Keys) {
+		if err := st.LightGrammar(ctx, pair[0], pair[1]); err != nil {
+			return err
+		}
+	}
+	for _, skill := range UsedSkills(ev.Keys) {
+		if err := progress.ReviewSkill(ctx, st, skill, usedQuality, ts, false); err != nil {
+			return err
+		}
+	}
+	return nil
 }

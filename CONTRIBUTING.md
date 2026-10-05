@@ -26,6 +26,9 @@ works in Neovim**. `hjkl dev verify` is the gate.
   par: 4                    # keystroke count of solution (<Esc> = 1)
   solution: "cwfoo<Esc>"
   language: go              # optional filetype
+  require: ['\.']           # optional regexps the player's command keys must match
+  forbid: ['[2-9]dd']       # optional regexps they must not match
+  technique: "this drill is about dd then ."   # shown when a rule fails
 ```
 
 Navigate drills need `target_cursor` and usually omit a distinct `target`
@@ -50,9 +53,20 @@ Tag the Practical Vim idea, not a key name. Prefer:
 `modes`, `dot`, `grammar`, `chunk-undo`, `operators-over-visual`,
 `text-objects`, `gn`, `ex-ranges`, `macros`, `registers`, `jumps`, `files`.
 
-Solutions should demonstrate that idea. A `dot` drill whose solution never
-presses `.` will still *work*, and the results card will nag - better to
-include `.`.
+Solutions should demonstrate that idea, and drills should *enforce* it.
+Without rules, any route that reaches the target under par earns three
+stars, even the habit the drill replaces (`3dd` in a "don't count, repeat"
+drill). Use `require` / `forbid` so the stars follow the technique:
+
+- They are regexps matched against the **command keys**: keys typed in
+  Normal, operator-pending and Visual mode. Text typed in Insert mode or on
+  the command line is excluded, so `cwyes<Esc>` has command keys `cw`.
+- A failed rule caps the run at one star and shows `technique`.
+- `hjkl dev verify` fails if the canonical solution breaks its own rules.
+- Every `dot` drill should `require: ['\.']`.
+
+A drill only counts as won in Normal mode, so changes must end with `<Esc>`
+(that is what makes them one `.` unit).
 
 ## Harness
 

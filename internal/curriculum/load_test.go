@@ -1,6 +1,7 @@
 package curriculum
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/waaldev/hjkl/internal/keys"
@@ -40,5 +41,19 @@ func TestLoad(t *testing.T) {
 	}
 	if _, ok := cat.Challenge("white-01-insert"); !ok {
 		t.Fatal("missing white-01-insert")
+	}
+}
+
+func TestTechniqueRulesCompile(t *testing.T) {
+	cat, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ch := range cat.Challenges {
+		for _, pat := range append(append([]string{}, ch.Require...), ch.Forbid...) {
+			if _, err := regexp.Compile(pat); err != nil {
+				t.Fatalf("%s: %v", ch.ID, err)
+			}
+		}
 	}
 }

@@ -42,7 +42,14 @@ type Challenge struct {
 	TargetCursor []int         `yaml:"target_cursor,omitempty" json:"target_cursor,omitempty"`
 	Par          int           `yaml:"par" json:"par"`
 	Solution     string        `yaml:"solution" json:"solution"`
-	Language     string        `yaml:"language,omitempty" json:"language,omitempty"`
+	// Require and Forbid are regexps checked against the command keys
+	// (Normal/Visual mode only). They make a drill about its technique,
+	// not just its result.
+	Require []string `yaml:"require,omitempty" json:"require,omitempty"`
+	Forbid  []string `yaml:"forbid,omitempty" json:"forbid,omitempty"`
+	// Technique is shown when a require/forbid rule fails.
+	Technique string `yaml:"technique,omitempty" json:"technique,omitempty"`
+	Language  string `yaml:"language,omitempty" json:"language,omitempty"`
 }
 
 // beltFile is the on-disk YAML shape (challenges nested under the belt).
