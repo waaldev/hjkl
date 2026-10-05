@@ -38,6 +38,7 @@ func NewRoot() *cobra.Command {
 		newAskCmd(),
 		newConfigCmd(),
 		newDevCmd(),
+		newSuggestCmd(),
 		newVersionCmd(),
 	)
 	return cmd

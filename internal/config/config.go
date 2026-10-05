@@ -16,8 +16,11 @@ type Config struct {
 }
 
 type AIConfig struct {
-	Provider  string         `toml:"provider"`
-	Model     string         `toml:"model"`
+	Provider string `toml:"provider"`
+	Model    string `toml:"model"`
+	// Suggest allows :HjklWhy to send the lines of one edit (never the
+	// whole file) to the provider. Off by default.
+	Suggest   bool           `toml:"suggest"`
 	Anthropic ProviderKeys   `toml:"anthropic"`
 	OpenAI    OpenAIConfig   `toml:"openai"`
 	CLIAgent  CLIAgentConfig `toml:"cli_agent"`
@@ -101,6 +104,24 @@ func CoachEventsPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(d, "coach-events.jsonl"), nil
+}
+
+// DrillsDir holds personal drills saved from real edits (:HjklWhy).
+func DrillsDir() (string, error) {
+	_, d, err := Dirs()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "drills"), nil
+}
+
+// SuggestionsDir holds verified suggestions waiting to be practiced or saved.
+func SuggestionsDir() (string, error) {
+	_, d, err := Dirs()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "suggestions"), nil
 }
 
 func Load() (Config, error) {
