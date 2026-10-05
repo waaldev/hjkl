@@ -19,6 +19,21 @@ func Stars(ok bool, keyCount, par int) int {
 	return 1
 }
 
+// SpeedStars grades a speedrun by the clock: at or under the target is 3,
+// within 1.5x is 2, slower is 1.
+func SpeedStars(ok bool, durationMS, targetMS int) int {
+	switch {
+	case !ok:
+		return 0
+	case targetMS <= 0 || durationMS <= targetMS:
+		return 3
+	case durationMS*2 <= targetMS*3:
+		return 2
+	default:
+		return 1
+	}
+}
+
 // HintCap removes one star per hint used, never below one for a clear.
 func HintCap(stars, hintsUsed int) int {
 	if stars <= 0 || hintsUsed <= 0 {

@@ -105,3 +105,14 @@ func TestSkillsHaveDocs(t *testing.T) {
 		}
 	}
 }
+
+func TestSpeedrunNeedsTimeTarget(t *testing.T) {
+	ch := Challenge{ID: "s", Type: TypeSpeedrun, Solution: "dd"}
+	if err := normalizeChallenge(&ch, Belt{ID: "white"}); err == nil {
+		t.Fatal("a speedrun without time_target_ms should not load")
+	}
+	ch.TimeTargetMS = 3000
+	if err := normalizeChallenge(&ch, Belt{ID: "white"}); err != nil {
+		t.Fatal(err)
+	}
+}

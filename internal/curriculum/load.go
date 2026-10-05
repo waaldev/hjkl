@@ -101,6 +101,9 @@ func normalizeChallenge(ch *Challenge, belt Belt) error {
 	if ch.Solution == "" {
 		return fmt.Errorf("missing solution")
 	}
+	if ch.Type == TypeSpeedrun && ch.TimeTargetMS <= 0 {
+		return fmt.Errorf("speedrun challenges need time_target_ms")
+	}
 	return nil
 }
 

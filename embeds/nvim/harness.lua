@@ -85,6 +85,8 @@ local hints_used = 0
 -- keys are kept, so rules can check Ex commands (:g, g&, @:).
 local cmd_recorded = {}
 local started_at = vim.uv.hrtime()
+-- Speedruns time from the first key, so reading the buffer is free.
+local clock_started = kind ~= "speedrun"
 local finished = false
 local ns = vim.api.nvim_create_namespace("hjkl")
 
@@ -235,16 +237,30 @@ local function hint_label()
   return string.format("F1 hint (%d left, -1 star each)", left)
 end
 
+local function clock_label()
+  if kind ~= "speedrun" then
+    return ""
+  end
+  local target = (challenge.time_target_ms or 0) / 1000
+  if not clock_started then
+    return string.format(" │ ⏱ %.1fs - starts on your first key", target)
+  end
+  local elapsed = (vim.uv.hrtime() - started_at) / 1e9
+  local mark = elapsed <= target and "" or " over"
+  return string.format(" │ ⏱ %.1fs / %.1fs%s", elapsed, target, mark)
+end
+
 local function set_winbar()
   if not (work_win and vim.api.nvim_win_is_valid(work_win)) then
     return
   end
   vim.wo[work_win].winbar = string.format(
-    " hjkl │ %s │ %s │ keys %d / par %d │ %s  F10 abort ",
+    " hjkl │ %s │ %s │ keys %d / par %d%s │ %s  F10 abort ",
     label(),
     tostring(challenge.title or ""),
     #recorded,
     challenge.par or 0,
+    clock_label(),
     hint_label()
   )
 end
@@ -325,6 +341,10 @@ vim.on_key(function(_, typed)
   if trans == "<F1>" or trans == "<F10>" then
     return
   end
+  if not clock_started then
+    clock_started = true
+    started_at = vim.uv.hrtime()
+  end
   table.insert(recorded, trans)
   if is_cmd_mode(vim.api.nvim_get_mode().mode) then
     table.insert(cmd_recorded, trans)
@@ -341,6 +361,18 @@ local function check_win()
   if won() then
     finish(true, "solved")
   end
+end
+
+-- Speedrun clock: refresh the winbar while the run is live.
+if kind == "speedrun" and mode == "play" then
+  local tick = vim.uv.new_timer()
+  tick:start(250, 250, vim.schedule_wrap(function()
+    if finished then
+      tick:stop()
+      return
+    end
+    set_winbar()
+  end))
 end
 
 -- Demo: play the par solution one key at a time so the player can watch
