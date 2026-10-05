@@ -1,9 +1,12 @@
 package curriculum
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
+	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -114,3 +117,31 @@ func normalizeText(s string) string {
 }
 
 func keysCount(notation string) int { return keys.Count(notation) }
+
+// LoadPersonal reads personal drills (one JSON challenge per file) from dir.
+// A missing dir is not an error; unreadable files are skipped.
+func LoadPersonal(dir string) ([]Challenge, error) {
+	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var out []Challenge
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			continue
+		}
+		var ch Challenge
+		if json.Unmarshal(raw, &ch) != nil || normalizeChallenge(&ch, Belt{ID: PersonalBelt}) != nil {
+			continue
+		}
+		out = append(out, ch)
+	}
+	return out, nil
+}

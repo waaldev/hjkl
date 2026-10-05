@@ -79,6 +79,23 @@ type Catalog struct {
 	bySkill    map[string][]Challenge
 }
 
+// AddPersonal adds drills saved from the player's own edits. They are not
+// in any belt, so they never show up as new material; they join reviews for
+// their skills.
+func (c *Catalog) AddPersonal(chs ...Challenge) {
+	for _, ch := range chs {
+		if _, dup := c.byID[ch.ID]; dup {
+			continue
+		}
+		ch.Belt = PersonalBelt
+		c.Challenges = append(c.Challenges, ch)
+	}
+	c.index()
+}
+
+// PersonalBelt is the belt id of drills saved from real edits.
+const PersonalBelt = "personal"
+
 func (c *Catalog) Challenge(id string) (Challenge, bool) {
 	ch, ok := c.byID[id]
 	return ch, ok

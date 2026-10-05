@@ -124,6 +124,8 @@ files, never the file contents or the text you type.
 - It hints (throttled) on habits like `jjjjjjj`, `xxxxx`, arrow keys, and
   `viwd` instead of `diw`. Each hint is shown a few times (`hint_limit`,
   default 5), then fades.
+- `:HjklWhy` finds a verified shorter way to make your last edit (opt-in;
+  see "A shorter way, in your own projects" below).
 - `:HjklDrill` opens a short drill for the last habit it flagged (or
   `:HjklDrill text-objects`). `:HjklSnooze` mutes that hint for a week.
 - It also counts what you use well (`ciw`, `d2w`, `.`, `cgn`…). Real-world
@@ -167,8 +169,36 @@ Every generated challenge is checked the same way as `hjkl dev verify`.
 If the solution misses the target or blows par, it is rejected. It is also
 rejected if it teaches nothing: no change to make, or a solution that does
 not use the skill being practiced. Debrief
-stays inside skills you have unlocked, plus at most one next step. Only
-aggregated coach stats would ever be sent, never file contents.
+stays inside skills you have unlocked, plus at most one next step.
+
+### A shorter way, in your own projects (`:HjklWhy`)
+
+After an edit in your own files, `:HjklWhy` asks for a shorter way to make
+it. The answer is replayed in a headless nvim first: it is shown only if it
+turns your *before* text into exactly your *after* text, in fewer keys. The
+popup offers **p** to practice it once in a scratch drill, and **s** to save
+it as a personal drill that comes back in your reviews.
+
+When an edit costs far more keys than its size (for example retyping words
+letter by letter), the coach suggests `:HjklWhy`. Nothing is sent until you
+run it.
+
+This is the one feature that sends code, so it is off until you turn it on:
+
+```toml
+# ~/.config/hjkl/config.toml
+[ai]
+suggest = true
+```
+
+- Only the changed lines of that one edit, plus 2 lines of context, are
+  sent (at most 40 lines). Never the rest of the file.
+- Files matching `*.env`, `.env*`, `*.pem`, `*.key`, `*secret*`,
+  `*credential*` and `*password*` are never captured. Change the list with
+  the plugin's `why = { exclude = { ... } }` option.
+- A local model (Ollama, LM Studio) keeps everything on your machine.
+
+Everything else the coach records stays local as aggregated counts.
 
 ## Data
 

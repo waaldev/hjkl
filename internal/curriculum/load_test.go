@@ -1,6 +1,8 @@
 package curriculum
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -114,5 +116,30 @@ func TestSpeedrunNeedsTimeTarget(t *testing.T) {
 	ch.TimeTargetMS = 3000
 	if err := normalizeChallenge(&ch, Belt{ID: "white"}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLoadPersonal(t *testing.T) {
+	dir := t.TempDir()
+	good := `{"id":"why-1","title":"Your edit","type":"transform","skills":["dot"],"start":"a","target":"b","start_cursor":[1,1],"par":3,"solution":"rb"}`
+	if err := os.WriteFile(filepath.Join(dir, "why-1.json"), []byte(good), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(filepath.Join(dir, "broken.json"), []byte("{"), 0o600)
+	chs, err := LoadPersonal(dir)
+	if err != nil || len(chs) != 1 {
+		t.Fatalf("chs=%v err=%v", chs, err)
+	}
+	cat, _ := Load()
+	n := len(cat.ChallengesForSkill("dot"))
+	cat.AddPersonal(chs...)
+	if len(cat.ChallengesForSkill("dot")) != n+1 {
+		t.Fatal("personal drill should join reviews for its skills")
+	}
+	if ch, _ := cat.Challenge("why-1"); ch.Belt != PersonalBelt {
+		t.Fatalf("belt=%q", ch.Belt)
+	}
+	if missing, err := LoadPersonal(filepath.Join(dir, "nope")); err != nil || missing != nil {
+		t.Fatal("a missing drills dir is fine")
 	}
 }

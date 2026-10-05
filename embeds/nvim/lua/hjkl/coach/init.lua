@@ -1,4 +1,5 @@
 local M = {}
+local why = require("hjkl.coach.why")
 
 local default_events = vim.fn.expand("~/.local/share/hjkl/coach-events.jsonl")
 
@@ -12,6 +13,9 @@ local cfg = {
   -- only the weekly review mentions it.
   hint_limit = 5,
   hjkl_cmd = "hjkl",
+  -- :HjklWhy settings (see why.lua). Suggestions themselves are switched
+  -- on in hjkl's config: [ai] suggest = true.
+  why = {},
 }
 
 local last_hint = 0
@@ -315,11 +319,15 @@ function M.setup(opts)
     vim.notify("hjkl: " .. pattern .. " snoozed for a week", vim.log.levels.INFO)
   end, { nargs = "?", desc = "hjkl: mute a coach hint for a week" })
 
+  why.setup(vim.tbl_extend("force", { hjkl_cmd = cfg.hjkl_cmd }, cfg.why), hint)
+
   vim.on_key(function(_, typed)
     if typed == nil or typed == "" then
       return
     end
-    M._on_key(keytrans(typed), vim.api.nvim_get_mode().mode)
+    local trans = keytrans(typed)
+    why.on_key(trans)
+    M._on_key(trans, vim.api.nvim_get_mode().mode)
   end)
   local timer = (vim.uv or vim.loop).new_timer()
   timer:start(cfg.flush_ms, cfg.flush_ms, vim.schedule_wrap(M.flush))

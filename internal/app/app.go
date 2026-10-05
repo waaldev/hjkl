@@ -32,6 +32,11 @@ func Open() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	if dir, err := config.DrillsDir(); err == nil {
+		if mine, err := curriculum.LoadPersonal(dir); err == nil {
+			cat.AddPersonal(mine...)
+		}
+	}
 	a := &App{Cfg: cfg, Cat: cat, Store: st}
 	if p, err := config.CoachEventsPath(); err == nil {
 		_, _ = coach.IngestJSONL(context.Background(), st, p)
