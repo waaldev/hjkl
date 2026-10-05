@@ -142,7 +142,7 @@ func runAIDrill(a *app.App, skill string) error {
 	if err != nil {
 		return err
 	}
-	if err := ai.VerifyGate(context.Background(), ch, a.Cfg.Nvim); err != nil {
+	if err := ai.VerifyGate(context.Background(), ch, skill, a.Cfg.Nvim); err != nil {
 		return err
 	}
 	fmt.Println("generated drill passed the verify gate")

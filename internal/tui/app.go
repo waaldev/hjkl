@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/waaldev/hjkl/internal/ai"
 	"github.com/waaldev/hjkl/internal/app"
 	"github.com/waaldev/hjkl/internal/curriculum"
 	"github.com/waaldev/hjkl/internal/game"
@@ -50,11 +52,17 @@ type model struct {
 	result    runner.Result
 	runDir    string
 	cheatQ    string
-	shown     bool // the par solution was demoed for this result
+	shown     bool   // the par solution was demoed for this result
+	debrief   string // AI debrief for this result, when asked for
 	homeItems []string
 }
 
 type demoDoneMsg struct{ dir string }
+
+type debriefMsg struct {
+	text string
+	err  error
+}
 
 type nvimDoneMsg struct {
 	err        error
@@ -114,6 +122,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 	case nvimDoneMsg:
 		return m, m.handleNvim(msg)
+	case debriefMsg:
+		if msg.err != nil {
+			m.err = "debrief: " + msg.err.Error()
+		} else {
+			m.debrief = msg.text
+		}
+		return m, nil
 	case demoDoneMsg:
 		_ = os.RemoveAll(msg.dir)
 		m.shown = true
@@ -168,9 +183,12 @@ func (m *model) updateHome(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter", "l":
 		switch m.homeItems[m.cursor] {
 		case "Continue":
-			if ch, ok := progress.NextChallenge(m.app.Cat, m.stars); ok {
+			if ch, review, ok := progress.Next(context.Background(), m.app.Store, m.app.Cat, time.Now(), rand.Intn); ok {
 				m.active = ch
 				m.page = pageTeach
+				if review {
+					m.status = "Interleaved review: an older skill between new ones. No lesson - recall it."
+				}
 			} else {
 				m.status = "Every belt challenge is cleared. Daily reviews keep the edge."
 			}
@@ -254,6 +272,8 @@ func (m *model) updateResults(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.page = pageChallenges
 		m.cursor = m.chIdx
 		m.refresh()
+	case "?":
+		return m, m.requestDebrief()
 	case "s":
 		return m, m.launchDemo()
 	case "r":
@@ -289,6 +309,22 @@ func (m *model) launchNvim() tea.Cmd {
 	})
 }
 
+// requestDebrief asks the configured AI provider to explain the run.
+func (m *model) requestDebrief() tea.Cmd {
+	p, err := ai.FromConfig(m.app.Cfg)
+	if err != nil {
+		m.status = "configure an AI provider for debriefs: hjkl ai setup"
+		return nil
+	}
+	m.status = "asking the sensei…"
+	ch, res := m.active, m.result
+	unlocked := progress.UnlockedSkills(m.app.Cat, m.stars)
+	return func() tea.Msg {
+		text, err := ai.Debrief(context.Background(), p, ch, res, unlocked)
+		return debriefMsg{text: text, err: err}
+	}
+}
+
 // launchDemo plays the par solution in nvim so the player can watch it.
 func (m *model) launchDemo() tea.Cmd {
 	dir, err := os.MkdirTemp("", "hjkl-demo-*")
@@ -322,6 +358,7 @@ func (m *model) handleNvim(msg nvimDoneMsg) tea.Cmd {
 	m.result = res
 	m.outcome = out
 	m.shown = false
+	m.debrief = ""
 	m.page = pageResults
 	m.refresh()
 	return nil
@@ -444,9 +481,13 @@ func (m *model) viewResults() string {
 	if !m.result.OK && !m.shown {
 		par = "par  hidden - r to retry, s to watch it"
 	}
-	body := fmt.Sprintf("%s  %s\n\n%s    keys %d / par %d    xp +%d\n%s\n",
+	fluent := ""
+	if m.outcome.Fluent {
+		fluent = "  fluent"
+	}
+	body := fmt.Sprintf("%s  %s\n\n%s    keys %d / par %d    %.1fs%s    xp +%d\n%s\n",
 		style.Render(ok), ch.Title,
-		starsBar(m.outcome.Stars), m.result.KeyCount, ch.Par, m.outcome.XP,
+		starsBar(m.outcome.Stars), m.result.KeyCount, ch.Par, float64(m.result.DurationMS)/1000, fluent, m.outcome.XP,
 		mutedStyle.Render("you  "+m.result.Keys+"\n"+par),
 	)
 	if m.outcome.HintsUsed > 0 {
@@ -461,7 +502,10 @@ func (m *model) viewResults() string {
 	if p := curriculum.PrincipleText(ch.Principle); p != "" {
 		body += "\n" + inkStyle.Render(p) + "\n"
 	}
-	keysHelp := "enter next    q back"
+	if m.debrief != "" {
+		body += "\n" + inkStyle.Render(m.debrief) + "\n"
+	}
+	keysHelp := "enter next    q back    ? debrief"
 	if m.outcome.Stars < 3 {
 		keysHelp = "s show me    r retry    " + keysHelp
 	}

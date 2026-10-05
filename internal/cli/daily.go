@@ -41,7 +41,7 @@ func newDailyCmd() *cobra.Command {
 					if len(chs) == 0 {
 						continue
 					}
-					ch := pickReview(chs, stars, last, rand.Intn)
+					ch := progress.PickReview(chs, stars, last, rand.Intn)
 					if err := play(a, ch, true); err != nil {
 						return err
 					}
@@ -50,31 +50,6 @@ func newDailyCmd() *cobra.Command {
 			})
 		},
 	}
-}
-
-// pickReview rotates through the drills that teach a skill, least recently
-// played first, and picks one of its variants at random, so a review tests
-// the skill rather than the memory of one puzzle. Drills never cleared are
-// skipped when a cleared one exists: a review should be recall, not new
-// material.
-func pickReview(chs []curriculum.Challenge, stars map[string]int, last map[string]time.Time, intn func(int) int) curriculum.Challenge {
-	pool := chs[:0:0]
-	for _, ch := range chs {
-		if stars[ch.ID] > 0 {
-			pool = append(pool, ch)
-		}
-	}
-	if len(pool) == 0 {
-		pool = chs
-	}
-	best := pool[0]
-	for _, ch := range pool[1:] {
-		if last[ch.ID].Before(last[best.ID]) {
-			best = ch
-		}
-	}
-	// -1 is the base drill; 0..n-1 are its variants.
-	return best.WithVariant(intn(len(best.Variants)+1) - 1)
 }
 
 func newCheatCmd() *cobra.Command {

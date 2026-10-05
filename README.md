@@ -57,7 +57,7 @@ Check it: `hjkl version`. Then `hjkl` to open the dojo.
 hjkl                 # dojo TUI
 hjkl learn           # same
 hjkl learn white     # next White-belt drill (no TUI: --no-tui)
-hjkl daily           # spaced reviews
+hjkl daily           # spaced reviews (no lesson shown - recall it)
 hjkl stats           # XP, streak, Grammar Grid
 hjkl cheat dw        # unlocked cheatsheet
 hjkl coach install   # Neovim plugin snippet
@@ -65,7 +65,13 @@ hjkl dev verify      # every challenge solution, headless
 ```
 
 Inside a drill: **F1** hint, **F10** abort. Matching the target (or landing on
-the highlighted cell) writes a result and returns you to the results card.
+the highlighted cell) in Normal mode writes a result and returns you to the
+results card.
+
+F1 climbs a hint ladder: the skill family, then a nudge, then the answer.
+Each rung costs a star. When a run is short of three stars, **s** plays the
+par solution in nvim, **r** retries, and **?** asks the AI sensei for a
+debrief (if configured).
 
 ## The dojo
 
@@ -85,8 +91,13 @@ Belts unlock at 80% of the previous belt (at least one star per drill).
 Challenge types: **Transform** (buffer matches the target split), **Navigate**
 (cursor on the highlight), **Dot** (repeat with `.`), **Golf**, **Boss**.
 
-Stars: at or under par = 3, within 2× par = 2, completed = 1. The Dot Score
-calls out whether you used `.` on drills that wanted it.
+Stars: at or under par = 3, within 2× par = 2, completed = 1, minus one per
+hint. Drills about a technique (`.`, `;`, `cgn`, `g&`…) check that you used
+it: the right result by another route earns one star.
+
+Spaced repetition schedules each skill. Only the first attempt per skill per
+day counts, speed counts (three stars *and* fluent is the top grade), and
+`hjkl learn` mixes a due review in after every three new drills.
 
 Pedagogy is Practical Vim, not a key catalog:
 
@@ -105,12 +116,22 @@ hjkl coach install
 ```
 
 Paste the printed `lazy.nvim` snippet into your Neovim config. The plugin
-watches Normal-mode keys in **your** files, never the file contents.
+watches command keys (Normal, operator-pending and Visual mode) in **your**
+files, never the file contents or the text you type.
 
-It hints (throttled) on habits like `jjjjjjj`, `xxxxx`, arrow keys, and `viwd`
-instead of `diw`. Events land in `~/.local/share/hjkl/coach-events.jsonl` as
-counts per pattern. `hjkl coach report` and `hjkl coach quest` read the
-aggregates. Quiet mode: `opts = { quiet = true }`.
+- It hints (throttled) on habits like `jjjjjjj`, `xxxxx`, arrow keys, and
+  `viwd` instead of `diw`. Each hint is shown a few times (`hint_limit`,
+  default 5), then fades.
+- `:HjklDrill` opens a short drill for the last habit it flagged (or
+  `:HjklDrill text-objects`). `:HjklSnooze` mutes that hint for a week.
+- It also counts what you use well (`ciw`, `d2w`, `.`, `cgn`…). Real-world
+  use lights the Grammar Grid and counts as a review for skills the dojo
+  taught. After the first day, the first real use of a new command gets a
+  short "nice".
+
+Events land in `~/.local/share/hjkl/coach-events.jsonl` as counts.
+`hjkl coach report` and `hjkl coach quest` read the aggregates. Quiet mode:
+`opts = { quiet = true }`.
 
 ## AI sensei (optional)
 
