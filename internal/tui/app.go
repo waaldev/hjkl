@@ -490,6 +490,9 @@ func (m *model) viewResults() string {
 		starsBar(m.outcome.Stars), m.result.KeyCount, ch.Par, float64(m.result.DurationMS)/1000, fluent, m.outcome.XP,
 		mutedStyle.Render("you  "+m.result.Keys+"\n"+par),
 	)
+	if ch.Type == curriculum.TypeSpeedrun {
+		body += "\n" + goldStyle.Render(fmt.Sprintf("clock %.1fs / target %.1fs", float64(m.result.DurationMS)/1000, float64(ch.TimeTargetMS)/1000)) + "\n"
+	}
 	if m.outcome.HintsUsed > 0 {
 		body += "\n" + mutedStyle.Render(fmt.Sprintf("hints used: %d (-%d star)", m.outcome.HintsUsed, m.outcome.HintsUsed)) + "\n"
 	}

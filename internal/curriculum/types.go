@@ -47,6 +47,8 @@ type Challenge struct {
 	// not just its result.
 	Require []string `yaml:"require,omitempty" json:"require,omitempty"`
 	Forbid  []string `yaml:"forbid,omitempty" json:"forbid,omitempty"`
+	// TimeTargetMS is the speedrun clock target, from the first key.
+	TimeTargetMS int `yaml:"time_target_ms,omitempty" json:"time_target_ms,omitempty"`
 	// TargetRegister makes a register part of the win condition.
 	TargetRegister *Register `yaml:"target_register,omitempty" json:"target_register,omitempty"`
 	// Hints is an optional hand-written ladder, gentlest first. Without it

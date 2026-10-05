@@ -89,7 +89,9 @@ Belts unlock at 80% of the previous belt (at least one star per drill).
 | ⚫ Black | Mastery | combinations, golf, your own config |
 
 Challenge types: **Transform** (buffer matches the target split), **Navigate**
-(cursor on the highlight), **Dot** (repeat with `.`), **Golf**, **Boss**.
+(cursor on the highlight), **Dot** (repeat with `.`), **Golf**, **Boss**, and
+**Speedrun** (the same small move, against a clock that starts on your first
+key; stars need both par keys and the target time).
 
 Stars: at or under par = 3, within 2× par = 2, completed = 1, minus one per
 hint. Drills about a technique (`.`, `;`, `cgn`, `g&`…) check that you used
@@ -150,8 +152,21 @@ hjkl ask "delete inside quotes"
 hjkl drill --ai operators
 ```
 
+With Anthropic, the default model is `claude-opus-5-5` at low effort (sensei
+answers are short). Override it in `~/.config/hjkl/config.toml`:
+
+```toml
+[ai]
+provider = "anthropic"
+model = "claude-opus-5-5"   # any Claude model id
+[ai.anthropic]
+effort = "medium"           # low | medium | high | xhigh | max
+```
+
 Every generated challenge is checked the same way as `hjkl dev verify`.
-If the solution misses the target or blows par, it is rejected. Debrief
+If the solution misses the target or blows par, it is rejected. It is also
+rejected if it teaches nothing: no change to make, or a solution that does
+not use the skill being practiced. Debrief
 stays inside skills you have unlocked, plus at most one next step. Only
 aggregated coach stats would ever be sent, never file contents.
 

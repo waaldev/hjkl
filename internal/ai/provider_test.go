@@ -165,3 +165,55 @@ func TestGoldenAnthropic(t *testing.T) {
 		t.Fatalf("%q", resp.Text)
 	}
 }
+
+func TestAnthropicDefaultModelRequest(t *testing.T) {
+	var body map[string]any
+	var beta string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		beta = r.Header.Get("anthropic-beta")
+		body = nil
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		// Thinking blocks come before the text and must not leak into it.
+		_, _ = w.Write([]byte(`{"content":[{"type":"thinking","thinking":""},{"type":"text","text":"pong"}],"stop_reason":"end_turn"}`))
+	}))
+	defer srv.Close()
+
+	a := Anthropic{APIKey: "k", BaseURL: srv.URL, Client: srv.Client()}
+	resp, err := a.Complete(context.Background(), Request{Prompt: "ping"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Text != "pong" || resp.Model != DefaultAnthropicModel {
+		t.Fatalf("resp=%+v", resp)
+	}
+	if body["model"] != DefaultAnthropicModel || body["max_tokens"].(float64) < 8000 {
+		t.Fatalf("body=%v", body)
+	}
+	if oc, _ := body["output_config"].(map[string]any); oc["effort"] != "low" {
+		t.Fatalf("default model should use low effort: %v", body)
+	}
+	if body["fallbacks"] != "default" || beta != fallbackBeta {
+		t.Fatalf("refusal fallback not enabled: body=%v beta=%q", body, beta)
+	}
+
+	// A configured older model gets neither effort nor fallbacks.
+	a.Model = "claude-haiku-4-5"
+	if _, err := a.Complete(context.Background(), Request{Prompt: "ping"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := body["output_config"]; ok || body["fallbacks"] != nil || beta != "" {
+		t.Fatalf("older model got new parameters: body=%v beta=%q", body, beta)
+	}
+}
+
+func TestAnthropicRefusal(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"content":[],"stop_reason":"refusal","stop_details":{"type":"refusal","category":"cyber","explanation":"x"}}`))
+	}))
+	defer srv.Close()
+	a := Anthropic{APIKey: "k", BaseURL: srv.URL, Client: srv.Client()}
+	_, err := a.Complete(context.Background(), Request{Prompt: "ping"})
+	if err == nil || !strings.Contains(err.Error(), "declined") {
+		t.Fatalf("want a refusal error, got %v", err)
+	}
+}

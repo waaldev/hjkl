@@ -317,3 +317,60 @@ challenges:
     par: 9
     solution: "foci\"new<Esc>"
     language: json
+
+  - id: green-17-speedrun-quotes
+    title: Speedrun - three kinds of quotes
+    type: speedrun
+    skills: [text-objects]
+    principle: text-objects
+    brief: Every old becomes new. The clock starts on your first key.
+    teach: |
+      Quote objects (i" i' i`) search forward on the line, so you can fire
+      them from the start of the line without moving first.
+    hint: "Change inside the quotes on each line - no need to move onto them."
+    start: |
+      a = "old"
+      b = 'old'
+      c = `old`
+    target: |
+      a = "new"
+      b = 'new'
+      c = `new`
+    start_cursor: [1, 1]
+    time_target_ms: 9000
+    solution: "ci\"new<Esc>jci'new<Esc>jci`new<Esc>"
+
+  - id: green-18-speedrun-dot
+    title: Speedrun - the dot formula
+    type: speedrun
+    skills: [dot, operators, text-objects]
+    principle: dot
+    brief: Rename every foo to bar. The clock starts on your first key.
+    teach: |
+      One key to move, one key to execute: j . j . j . The change is typed
+      once; the rest is rhythm.
+
+      Make the change repeatable from anywhere: after Esc the cursor sits
+      mid-word, and cw from the middle only changes the rest of the word.
+      ciw changes the whole word wherever the cursor is in it.
+    hint: "Change the inner word once, then down and repeat."
+    start: |
+      foo := 1
+      foo := 2
+      foo := 3
+      foo := 4
+      foo := 5
+      foo := 6
+    target: |
+      bar := 1
+      bar := 2
+      bar := 3
+      bar := 4
+      bar := 5
+      bar := 6
+    start_cursor: [1, 1]
+    require: ['\.']
+    technique: "this speedrun is about . - type the change once."
+    time_target_ms: 7000
+    solution: "ciwbar<Esc>j.j.j.j.j."
+    language: go
