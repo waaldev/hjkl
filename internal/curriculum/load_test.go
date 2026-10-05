@@ -2,6 +2,7 @@ package curriculum
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/waaldev/hjkl/internal/keys"
@@ -55,5 +56,34 @@ func TestTechniqueRulesCompile(t *testing.T) {
 				t.Fatalf("%s: %v", ch.ID, err)
 			}
 		}
+	}
+}
+
+func TestHintLadder(t *testing.T) {
+	ch := Challenge{Skills: []string{"text-objects"}, Hint: "Stand in hello and diw.", Solution: "diw"}
+	l := ch.HintLadder()
+	if len(l) != 3 || !strings.HasPrefix(l[0], "think: text objects") || l[1] != ch.Hint || l[2] != "answer: diw" {
+		t.Fatalf("ladder=%q", l)
+	}
+	// A hint that is just the solution collapses into the answer rung.
+	ch.Hint = "diw"
+	if l := ch.HintLadder(); len(l) != 2 {
+		t.Fatalf("ladder=%q", l)
+	}
+	r := ch.ForReview()
+	if !r.Review || r.Brief != "" || r.Teach != "" || len(r.HintLadder()) != 1 || strings.Contains(r.HintLadder()[0], "diw") {
+		t.Fatalf("review=%+v", r)
+	}
+}
+
+func TestWithVariant(t *testing.T) {
+	ch := Challenge{Start: "a b", Target: "b", Solution: "dw", Par: 2,
+		Variants: []Variant{{Start: "x y z\n", Target: "z", Solution: "d2w"}}}
+	v := ch.WithVariant(0)
+	if v.Start != "x y z" || v.Target != "z" || v.Solution != "d2w" || v.Par != 3 {
+		t.Fatalf("variant=%+v", v)
+	}
+	if b := ch.WithVariant(5); b.Start != "a b" {
+		t.Fatal("out of range should return base")
 	}
 }

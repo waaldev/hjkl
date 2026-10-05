@@ -50,8 +50,11 @@ type model struct {
 	result    runner.Result
 	runDir    string
 	cheatQ    string
+	shown     bool // the par solution was demoed for this result
 	homeItems []string
 }
+
+type demoDoneMsg struct{ dir string }
 
 type nvimDoneMsg struct {
 	err        error
@@ -111,6 +114,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 	case nvimDoneMsg:
 		return m, m.handleNvim(msg)
+	case demoDoneMsg:
+		_ = os.RemoveAll(msg.dir)
+		m.shown = true
+		return m, nil
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -247,6 +254,10 @@ func (m *model) updateResults(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.page = pageChallenges
 		m.cursor = m.chIdx
 		m.refresh()
+	case "s":
+		return m, m.launchDemo()
+	case "r":
+		return m, m.launchNvim()
 	case "enter", "n":
 		m.refresh()
 		if ch, ok := progress.NextInBelt(m.app.Cat, m.active.Belt, m.stars); ok {
@@ -266,7 +277,7 @@ func (m *model) launchNvim() tea.Cmd {
 		m.err = err.Error()
 		return nil
 	}
-	cmd, resultPath, err := runner.Command(m.active, m.app.Cfg.Nvim, dir)
+	cmd, resultPath, err := runner.Command(m.active, m.app.Cfg.Nvim, dir, "play")
 	if err != nil {
 		m.err = err.Error()
 		_ = os.RemoveAll(dir)
@@ -276,6 +287,22 @@ func (m *model) launchNvim() tea.Cmd {
 	return tea.ExecProcess(cmd, func(err error) tea.Msg {
 		return nvimDoneMsg{err: err, resultPath: resultPath, dir: dir}
 	})
+}
+
+// launchDemo plays the par solution in nvim so the player can watch it.
+func (m *model) launchDemo() tea.Cmd {
+	dir, err := os.MkdirTemp("", "hjkl-demo-*")
+	if err != nil {
+		m.err = err.Error()
+		return nil
+	}
+	cmd, _, err := runner.Command(m.active, m.app.Cfg.Nvim, dir, "demo")
+	if err != nil {
+		m.err = err.Error()
+		_ = os.RemoveAll(dir)
+		return nil
+	}
+	return tea.ExecProcess(cmd, func(error) tea.Msg { return demoDoneMsg{dir: dir} })
 }
 
 func (m *model) handleNvim(msg nvimDoneMsg) tea.Cmd {
@@ -294,6 +321,7 @@ func (m *model) handleNvim(msg nvimDoneMsg) tea.Cmd {
 	}
 	m.result = res
 	m.outcome = out
+	m.shown = false
 	m.page = pageResults
 	m.refresh()
 	return nil
@@ -411,11 +439,19 @@ func (m *model) viewResults() string {
 		ok = "MISS"
 		style = badStyle
 	}
+	// On a miss the answer stays hidden until you ask to see it (s).
+	par := "par  " + ch.Solution
+	if !m.result.OK && !m.shown {
+		par = "par  hidden - r to retry, s to watch it"
+	}
 	body := fmt.Sprintf("%s  %s\n\n%s    keys %d / par %d    xp +%d\n%s\n",
 		style.Render(ok), ch.Title,
 		starsBar(m.outcome.Stars), m.result.KeyCount, ch.Par, m.outcome.XP,
-		mutedStyle.Render("you  "+m.result.Keys+"\npar  "+ch.Solution),
+		mutedStyle.Render("you  "+m.result.Keys+"\n"+par),
 	)
+	if m.outcome.HintsUsed > 0 {
+		body += "\n" + mutedStyle.Render(fmt.Sprintf("hints used: %d (-%d star)", m.outcome.HintsUsed, m.outcome.HintsUsed)) + "\n"
+	}
 	if m.outcome.Technique != "" {
 		body += "\n" + goldStyle.Render(m.outcome.Technique) + "\n"
 	}
@@ -425,7 +461,11 @@ func (m *model) viewResults() string {
 	if p := curriculum.PrincipleText(ch.Principle); p != "" {
 		body += "\n" + inkStyle.Render(p) + "\n"
 	}
-	body += "\n" + mutedStyle.Render("enter next    q back    ? debrief is hjkl ask / AI when configured")
+	keysHelp := "enter next    q back"
+	if m.outcome.Stars < 3 {
+		keysHelp = "s show me    r retry    " + keysHelp
+	}
+	body += "\n" + mutedStyle.Render(keysHelp)
 	return boxStyle.Width(min(m.width-4, 72)).Render(body)
 }
 

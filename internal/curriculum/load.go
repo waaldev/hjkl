@@ -109,3 +109,5 @@ func normalizeText(s string) string {
 	s = strings.ReplaceAll(s, "\r", "\n")
 	return strings.TrimSuffix(s, "\n")
 }
+
+func keysCount(notation string) int { return keys.Count(notation) }
