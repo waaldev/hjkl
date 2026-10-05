@@ -29,6 +29,7 @@ works in Neovim**. `hjkl dev verify` is the gate.
   require: ['\.']           # optional regexps the player's command keys must match
   forbid: ['[2-9]dd']       # optional regexps they must not match
   technique: "this drill is about dd then ."   # shown when a rule fails
+  time_target_ms: 6000      # speedrun only (required): clock target from the first key
   hints:                    # optional ladder, gentlest first (F1, -1 star each)
     - "think: operators"
     - "d waits for a motion"

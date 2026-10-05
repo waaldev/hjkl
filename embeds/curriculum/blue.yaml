@@ -168,3 +168,29 @@ challenges:
     par: 5
     solution: "/ret<CR>"
     language: go
+
+  - id: blue-09-speedrun-search
+    title: Speedrun - search and repeat
+    type: speedrun
+    skills: [search, dot]
+    principle: dot
+    brief: Every TODO becomes DONE. The clock starts on your first key.
+    teach: |
+      Search, change, then n . n . - the search moves you and the dot
+      does the work. No counting lines, no hunting.
+    hint: "Search for TODO, change the word, then next match and repeat."
+    start: |
+      x := 1 // TODO
+      y := 2
+      // TODO: tidy
+      z := 3 // TODO
+    target: |
+      x := 1 // DONE
+      y := 2
+      // DONE: tidy
+      z := 3 // DONE
+    start_cursor: [1, 1]
+    require: ['n\.']
+    time_target_ms: 9000
+    solution: "/TODO<CR>cwDONE<Esc>n.n."
+    language: go

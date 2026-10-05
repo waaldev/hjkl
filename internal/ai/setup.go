@@ -20,7 +20,7 @@ func FromConfig(cfg config.Config) (Provider, error) {
 		if env == "" {
 			env = "ANTHROPIC_API_KEY"
 		}
-		return Anthropic{APIKey: os.Getenv(env), Model: first(cfg.AI.Model, "claude-sonnet-4-5")}, nil
+		return Anthropic{APIKey: os.Getenv(env), Model: first(cfg.AI.Model, DefaultAnthropicModel), Effort: cfg.AI.Anthropic.Effort}, nil
 	case "openai":
 		env := cfg.AI.OpenAI.APIKeyEnv
 		if env == "" {

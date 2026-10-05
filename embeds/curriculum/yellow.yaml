@@ -277,3 +277,28 @@ challenges:
     start_cursor: [1, 1]
     par: 7
     solution: "yypj2dd"
+
+  - id: yellow-15-speedrun-lines
+    title: Speedrun - clear the junk
+    type: speedrun
+    skills: [dd-yy-p, hjkl]
+    principle: modes
+    brief: Delete every junk line. The clock starts on your first key.
+    teach: |
+      Speedruns build muscle memory: the same small move, fast, until your
+      fingers know it. Stars need both - keys at par and the clock beaten.
+    hint: "Down one, delete the line, repeat."
+    start: |
+      keep
+      junk
+      keep
+      junk
+      keep
+      junk
+    target: |
+      keep
+      keep
+      keep
+    start_cursor: [1, 1]
+    time_target_ms: 5000
+    solution: "jddjddjdd"

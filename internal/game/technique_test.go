@@ -50,3 +50,20 @@ func TestQualityFluency(t *testing.T) {
 		t.Fatal("stars still dominate")
 	}
 }
+
+func TestSpeedStars(t *testing.T) {
+	cases := []struct {
+		ok                bool
+		dur, target, want int
+	}{
+		{true, 4000, 5000, 3},
+		{true, 7500, 5000, 2},
+		{true, 7600, 5000, 1},
+		{false, 1000, 5000, 0},
+	}
+	for _, c := range cases {
+		if got := SpeedStars(c.ok, c.dur, c.target); got != c.want {
+			t.Errorf("SpeedStars(%v, %d, %d) = %d, want %d", c.ok, c.dur, c.target, got, c.want)
+		}
+	}
+}
