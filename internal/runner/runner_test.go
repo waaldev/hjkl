@@ -100,3 +100,24 @@ func TestVerifyCountsHints(t *testing.T) {
 		t.Fatalf("hints_used=%d key_count=%d, want 2 and 2 (F1 is not a keystroke)", res.HintsUsed, res.KeyCount)
 	}
 }
+
+func TestTargetRegister(t *testing.T) {
+	if _, err := exec.LookPath("nvim"); err != nil {
+		t.Skip("nvim not installed")
+	}
+	ch := curriculum.Challenge{
+		ID: "yank", Belt: "orange", Title: "Yank", Type: curriculum.TypeTransform,
+		Start: "token rest", Target: "token rest", StartCursor: []int{1, 1}, Par: 2,
+		TargetRegister: &curriculum.Register{Name: `"`, Value: "token"},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	ch.Solution = "ye"
+	if _, err := Verify(ctx, ch, "nvim"); err != nil {
+		t.Fatalf("ye should win: %v", err)
+	}
+	ch.Solution = "yw" // yanks "token " - the trailing space is the lesson
+	if _, err := Verify(ctx, ch, "nvim"); err == nil {
+		t.Fatal("yw must not win a drill that wants exactly the word")
+	}
+}

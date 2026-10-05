@@ -31,6 +31,11 @@ func Unlocked(beltIDs []string, challengeBelts map[string]string, stars map[stri
 		if float64(cleared[prev])/float64(n) >= BeltUnlockThreshold {
 			out[beltIDs[i]] = true
 		}
+		// Unlocks stick: adding drills to an earlier belt lowers its
+		// percentage, but must not lock a belt the player already reached.
+		if cleared[beltIDs[i]] > 0 {
+			out[beltIDs[i]] = true
+		}
 	}
 	return out
 }

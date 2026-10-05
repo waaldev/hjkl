@@ -95,3 +95,100 @@ challenges:
     par: 12
     solution: "I# <Esc>jddf[lrx"
     language: markdown
+
+  - id: black-05-golf-typo
+    title: Golf - swap two letters
+    type: golf
+    skills: [golf, x]
+    principle: grammar
+    brief: Fix the typo.
+    teach: |
+      xp swaps the letter under the cursor with the next one: x cuts it,
+      p puts it back one to the right. Old trick, still the shortest.
+    hint: "Stand on the first wrong letter. Cut, then put."
+    start: "teh"
+    target: "the"
+    start_cursor: [1, 1]
+    solution: "lxp"
+
+  - id: black-06-golf-increment
+    title: Golf - change a number
+    type: golf
+    skills: [golf, counts]
+    principle: grammar
+    brief: Make the timeout 45.
+    teach: |
+      {count}<C-a> adds count to the next number on the line - you do
+      not even have to move onto it. <C-x> subtracts.
+    hint: "30 + 15. Ctrl-a takes a count."
+    start: "timeout = 30"
+    target: "timeout = 45"
+    start_cursor: [1, 1]
+    solution: "15<C-a>"
+
+  - id: black-07-golf-trailing
+    title: Golf - trailing commas
+    type: golf
+    skills: [golf, dot]
+    principle: dot
+    brief: Add a comma to every line but the last.
+    teach: |
+      A, Esc is one change. j. repeats it. The dot formula: one key to
+      move, one key to execute.
+    hint: "Append once, then move and repeat."
+    start: |
+      a
+      b
+      c
+    target: |
+      a,
+      b,
+      c
+    start_cursor: [1, 1]
+    require: ['\.']
+    solution: "A,<Esc>j."
+
+  - id: black-08-golf-upcase
+    title: Golf - new operator, old objects
+    type: golf
+    skills: [golf, text-objects, dot]
+    principle: grammar
+    brief: Uppercase the log level on each line.
+    teach: |
+      gU is an operator (uppercase), so it takes every motion and text
+      object you know. i" works even from before the quotes - Vim
+      searches forward on the line. Then . does the next line.
+    hint: "gU plus a quote text object, then j and repeat."
+    start: |
+      log("info", x)
+      log("warn", y)
+    target: |
+      log("INFO", x)
+      log("WARN", y)
+    start_cursor: [1, 1]
+    require: ['gU', '\.']
+    solution: "gUi\"j."
+    language: go
+
+  - id: black-09-refactor-boss
+    title: Boss - refactor a function
+    type: boss
+    skills: [golf, text-objects, gn, global]
+    principle: grammar
+    brief: Rename err to e, drop the debug line, and quote the message.
+    teach: |
+      Everything at once: a search-and-change with cgn and ., a :g to
+      clear the debug line, and a text object to finish.
+    hint: "/err then cgn e Esc . . - then :g/debug/d - then change the word failed into a quoted one."
+    start: |
+      if err != nil {
+      	debug(err)
+      	return wrap(err, failed)
+      }
+    target: |
+      if e != nil {
+      	return wrap(e, "failed")
+      }
+    start_cursor: [1, 1]
+    solution: "/err<CR>cgne<Esc>..:g/debug/d<CR>/failed<CR>ciw\"failed\"<Esc>"
+    language: go

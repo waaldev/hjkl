@@ -132,7 +132,7 @@ challenges:
     type: navigate
     skills: [search]
     principle: jumps
-    brief: From the last foo, jump to the previous one with #.
+    brief: From the last foo, jump to the previous foo without typing it.
     teach: |
       # is * in reverse. Same word, opposite direction.
     hint: "#"

@@ -67,7 +67,7 @@ challenges:
       :t. copies the current line below.
 
       Ex commands shine when the range is easier to name than to paint.
-    hint: ":m1 Enter  (move current line to after line 1 - wait, :m$ or :2m0)"
+    hint: ":m takes a destination line. $ is the last line."
     start: |
       b
       a
@@ -140,3 +140,196 @@ challenges:
     start_cursor: [1, 1]
     par: 18
     solution: ":g/^#/d<CR>:%norm A;<CR>"
+
+  - id: brown-07-inverse-global
+    title: :v keep matches
+    type: transform
+    skills: [global]
+    principle: ex-ranges
+    brief: Keep only the keep lines.
+    teach: |
+      :v/pat/cmd runs cmd on lines that do NOT match. :v/keep/d keeps
+      only the matches - grep inside your buffer.
+    hint: "The inverse of :g, with d."
+    start: |
+      keep 1
+      noise
+      keep 2
+      more noise
+    target: |
+      keep 1
+      keep 2
+    start_cursor: [1, 1]
+    require: [':v']
+    solution: ":v/keep/d<CR>"
+
+  - id: brown-08-global-normal
+    title: :g with :normal
+    type: transform
+    skills: [global]
+    principle: ex-ranges
+    brief: Add a semicolon to the return lines only.
+    teach: |
+      :g picks the lines, :normal types the keys. Together they are a
+      macro that only runs where the pattern matches.
+    hint: ":g/return/ then norm A;"
+    start: |
+      return a
+      x := 1
+      return b
+    target: |
+      return a;
+      x := 1
+      return b;
+    start_cursor: [1, 1]
+    require: [':g']
+    solution: ":g/return/norm A;<CR>"
+    language: go
+
+  - id: brown-09-copy-range
+    title: :t to the end
+    type: transform
+    skills: [ex-ranges]
+    principle: ex-ranges
+    brief: Copy the header line to the end of the file, without moving there.
+    teach: |
+      :{from}t{to} copies lines by number. :1t$ copies line 1 to the end.
+      Your cursor never has to travel.
+    hint: "Line 1, copied to the last line ($)."
+    start: |
+      header
+      body
+      body
+    target: |
+      header
+      body
+      body
+      header
+    start_cursor: [2, 1]
+    require: [':1t\$']
+    solution: ":1t$<CR>"
+
+  - id: brown-10-move-range
+    title: :m a block
+    type: transform
+    skills: [ex-ranges]
+    principle: ex-ranges
+    brief: Move lines two and three to the top.
+    teach: |
+      Ranges work with :m too. :2,3m0 moves lines 2-3 below line 0 - the
+      top of the file.
+    hint: "A range of 2,3 and a destination of 0."
+    start: |
+      c
+      a
+      b
+    target: |
+      a
+      b
+      c
+    start_cursor: [1, 1]
+    solution: ":2,3m0<CR>"
+
+  - id: brown-11-sort
+    title: :sort
+    type: transform
+    skills: [ex-ranges]
+    principle: ex-ranges
+    brief: Sort the imports.
+    teach: |
+      :sort sorts lines (the whole file, or a range). :sort u also drops
+      duplicates. :sort n sorts numerically.
+    hint: "There is an Ex command named exactly what you want."
+    start: |
+      "os"
+      "fmt"
+      "io"
+    target: |
+      "fmt"
+      "io"
+      "os"
+    start_cursor: [1, 1]
+    solution: ":sort<CR>"
+    language: go
+
+  - id: brown-12-relative-range
+    title: Relative ranges
+    type: transform
+    skills: [ex-ranges]
+    principle: ex-ranges
+    brief: Delete this line and the one below it with an Ex range.
+    teach: |
+      . is the current line. .,+1 is this line and the next. -2,. is two
+      above through here. Ranges let you name lines without counting.
+    hint: ":.,+1 then d"
+    start: |
+      keep
+      drop
+      drop
+      keep
+    target: |
+      keep
+      keep
+    start_cursor: [2, 1]
+    require: [':\.,\+1']
+    solution: ":.,+1d<CR>"
+
+  - id: brown-13-reuse-search
+    title: Reuse the last search
+    type: transform
+    skills: [substitute, search]
+    principle: ex-ranges
+    brief: Search for the word first, then replace every match without typing it again.
+    teach: |
+      An empty pattern in :s means "the last search". Search with / until
+      the highlights look right, then :%s//new/g.
+    hint: "/foo Enter, then :%s with an empty pattern."
+    start: |
+      foo a
+      b foo
+    target: |
+      bar a
+      b bar
+    start_cursor: [1, 1]
+    require: [':%s//']
+    technique: "this drill is about :%s// - reuse the search pattern instead of retyping it."
+    solution: "/foo<CR>:%s//bar/g<CR>"
+
+  - id: brown-14-very-magic
+    title: Very magic swap
+    type: transform
+    skills: [substitute]
+    principle: ex-ranges
+    brief: Turn "last, first" into "first last".
+    teach: |
+      \v (very magic) makes ( ) + and friends special without backslashes.
+      Capture groups come back as \1 \2 in the replacement.
+    hint: ":s/\\v(\\w+), (\\w+)/\\2 \\1/"
+    start: "lovelace, ada"
+    target: "ada lovelace"
+    start_cursor: [1, 1]
+    require: ['\\v']
+    solution: ":s/\\v(\\w+), (\\w+)/\\2 \\1/<CR>"
+
+  - id: brown-15-data-boss
+    title: Boss - clean a data file
+    type: boss
+    skills: [global, substitute, ex-ranges]
+    principle: ex-ranges
+    brief: Drop the comments, then swap "last,first" into "first last" on every line.
+    teach: |
+      Brown kit: :g :v :norm :t :m :sort, ranges, \v and reused searches.
+
+      Buffers, windows and quickfix need real files - try :vimgrep and
+      :cdo on your own project. The coach will notice.
+    hint: ":g/^#/d, then a \\v substitute with two groups on every line."
+    start: |
+      # people
+      lovelace,ada
+      # more
+      turing,alan
+    target: |
+      ada lovelace
+      alan turing
+    start_cursor: [1, 1]
+    solution: ":g/^#/d<CR>:%s/\\v(\\w+),(\\w+)/\\2 \\1/<CR>"

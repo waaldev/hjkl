@@ -42,3 +42,12 @@ func TestLightFromKeysSkipsArguments(t *testing.T) {
 		t.Fatalf("df: lit %v", got)
 	}
 }
+
+func TestLightFromKeysSkipsCommandLine(t *testing.T) {
+	if got := lit(":s/dw/cw<CR>/yes<CR>"); len(got) != 0 {
+		t.Fatalf("command-line text lit %v", got)
+	}
+	if got := lit(":s/a/b<CR>dw"); !got["dw"] || len(got) != 1 {
+		t.Fatalf("got %v", got)
+	}
+}

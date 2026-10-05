@@ -165,7 +165,7 @@ challenges:
     teach: |
       Purple kit: v V Ctrl-v, registers "0 "_, macros, :s.
 
-      A macro: f<space> then i" Esc, or :s/\\w\\+/\"&\"/g.
+      A macro: f<space> then i" Esc, or :s/\w\+/"&"/g.
 
       Editing a macro later: put the register ("ap), edit, yank back.
     hint: ":s/\\w\\+/\"&\"/g Enter"
@@ -174,3 +174,168 @@ challenges:
     start_cursor: [1, 1]
     par: 14
     solution: ":s/\\w\\+/\"&\"/g<CR>"
+
+  - id: purple-09-ampersand
+    title: Repeat a substitute
+    type: transform
+    skills: [substitute]
+    principle: ex-ranges
+    brief: Fix the first foo on both lines. Type the pattern once.
+    teach: |
+      & repeats the last :s on the current line - the . of Ex.
+      Act, repeat, reverse: :s acts, & repeats, u reverses.
+    hint: "Substitute on line one, move down, then the one-key repeat."
+    start: |
+      foo foo
+      foo foo
+    target: |
+      bar foo
+      bar foo
+    start_cursor: [1, 1]
+    require: ['&']
+    technique: "this drill is about & - repeat the substitute instead of retyping it."
+    solution: ":s/foo/bar<CR>j&"
+
+  - id: purple-10-g-ampersand
+    title: Repeat a substitute everywhere
+    type: transform
+    skills: [substitute]
+    principle: ex-ranges
+    brief: Try the substitute on one line, then apply it to the whole file.
+    teach: |
+      Practical Vim's workflow: refine :s on one line until it is right,
+      then g& replays it across the file with the same flags.
+    hint: "One :s on this line, then g followed by the repeat key."
+    start: |
+      color: red
+      color: red
+      color: red
+    target: |
+      colour: red
+      colour: red
+      colour: red
+    start_cursor: [1, 1]
+    require: ['g&']
+    technique: "this drill is about g& - test on one line, then replay everywhere."
+    solution: ":s/color/colour<CR>g&"
+
+  - id: purple-11-append-register
+    title: Collect into a register
+    type: transform
+    skills: [registers]
+    principle: registers
+    brief: Copy the two keep lines to the end, in order.
+    teach: |
+      "ayy yanks into register a. "Ayy (capital) appends to it.
+
+      Collect lines from all over a file into one register, then paste
+      them in one go.
+    hint: "\"ayy on the first, \"Ayy on the second, then \"ap at the end."
+    start: |
+      keep 1
+      skip
+      keep 2
+    target: |
+      keep 1
+      skip
+      keep 2
+      keep 1
+      keep 2
+    start_cursor: [1, 1]
+    require: ['"A']
+    technique: "this drill is about \"A - append to a register instead of overwriting it."
+    solution: "\"ayyjj\"Ayy\"ap"
+
+  - id: purple-12-ctrl-r
+    title: Paste in Insert mode
+    type: transform
+    skills: [registers]
+    principle: registers
+    brief: Finish the assignment with the name from line one - without leaving Insert to paste.
+    teach: |
+      <C-r>{register} pastes a register while you are in Insert mode.
+      <C-r>0 is the last yank. Your typing and the paste are one change.
+    hint: "Yank the word, go append on line two, then Ctrl-r and the yank register."
+    start: |
+      gopher
+      name := 
+    target: |
+      gopher
+      name := gopher
+    start_cursor: [1, 1]
+    solution: "yiwjA<C-r>0<Esc>"
+    language: go
+
+  - id: purple-13-repeat-ex
+    title: Repeat an Ex command
+    type: transform
+    skills: [substitute, macros]
+    principle: ex-ranges
+    brief: End every line with a semicolon. Type the command once.
+    teach: |
+      @: replays the last Ex command. After that, @@ replays it again.
+      It is . for the command line.
+    hint: ":s/$/;/ on line one, then move and replay the last Ex command."
+    start: |
+      a := 1
+      b := 2
+      c := 3
+    target: |
+      a := 1;
+      b := 2;
+      c := 3;
+    start_cursor: [1, 1]
+    require: ['@:']
+    technique: "this drill is about @: - replay the Ex command instead of retyping it."
+    solution: ":s/$/;/<CR>j@:j@@"
+    language: go
+
+  - id: purple-14-visual-increment
+    title: Number a list
+    type: transform
+    skills: [visual]
+    principle: operators-over-visual
+    brief: Number the list 1, 2, 3.
+    teach: |
+      <C-a> adds to the number under or after the cursor; <C-x> subtracts.
+
+      In Visual mode, g<C-a> increments progressively: the first line by
+      1, the next by 2, and so on. A list of 1s becomes 1, 2, 3.
+    hint: "Select lines two to the end with V, then g Ctrl-a."
+    start: |
+      1. eggs
+      1. milk
+      1. bread
+    target: |
+      1. eggs
+      2. milk
+      3. bread
+    start_cursor: [1, 1]
+    solution: "jVGg<C-a>"
+    language: markdown
+
+  - id: purple-15-parallel-macro
+    title: Macro in parallel
+    type: boss
+    skills: [macros, global]
+    principle: macros
+    brief: Wrap every word in quotes. Record once, then run it on all the other lines at once.
+    teach: |
+      Series: 2@q runs the macro again and again, and stops at the first
+      failure. Parallel: :2,$normal @q runs it once per line, and one bad
+      line does not stop the rest.
+
+      Normalize: start the recording with 0 so every line begins the same.
+    hint: "qq 0 i\" Esc A\" Esc q, then :2,$normal @q"
+    start: |
+      red
+      green
+      blue
+    target: |
+      "red"
+      "green"
+      "blue"
+    start_cursor: [1, 1]
+    require: ['normal<Space>@q']
+    technique: "this drill is about :normal @q - run the macro on every line in parallel."
+    solution: "qq0i\"<Esc>A\"<Esc>q:2,$normal @q<CR>"
