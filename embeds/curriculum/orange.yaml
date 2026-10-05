@@ -131,6 +131,8 @@ challenges:
     type: dot
     skills: [dot, operators, words]
     principle: dot
+    require: ['\.']
+    technique: "this drill is about . - change once, then let . repeat it."
     brief: Rename every cat. Change once, then .
     teach: |
       Don't count, repeat.
@@ -158,6 +160,8 @@ challenges:
     type: dot
     skills: [dot, operators, words]
     principle: dot
+    require: ['\.']
+    technique: "this drill is about . - delete once, then let . repeat it."
     brief: Strip the first word on each line with dw and .
     teach: |
       dwj. - delete-word, next line, repeat.
@@ -251,6 +255,9 @@ challenges:
     type: dot
     skills: [dot, counts, operators]
     principle: dot
+    require: ['\.']
+    forbid: ['[2-9]dd']
+    technique: "this drill is about dd then . - one undo per line, not a count."
     brief: Delete a word on three lines. Use . so each line undoes alone.
     teach: |
       3dd is one undo for three lines. dd. . is three undos.

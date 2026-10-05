@@ -49,6 +49,8 @@ challenges:
     type: transform
     skills: [find-char]
     principle: grammar
+    require: [';']
+    technique: "this drill is about ; - find once, then repeat the find."
     brief: Delete every x. Find once, then ; and x.
     teach: |
       f searches once. ; does it again. Combined with a delete, you hop
@@ -242,6 +244,8 @@ challenges:
     type: transform
     skills: [text-objects, operators]
     principle: operators-over-visual
+    forbid: ['v']
+    technique: "the operator form (diw) repeats with . - v...d does not."
     brief: Delete the inner word the repeatable way.
     teach: |
       viwd works. It is also a trap. Visual edits do not repeat with .
@@ -260,6 +264,8 @@ challenges:
     type: dot
     skills: [gn, search, dot]
     principle: gn
+    require: ['cgn', '\.']
+    technique: "this drill is about cgn then . - change one match, repeat on the next."
     brief: Replace every foo with bar, one match at a time.
     teach: |
       gn is a motion over the last search match.

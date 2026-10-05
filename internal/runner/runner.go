@@ -21,6 +21,7 @@ type Result struct {
 	OK         bool   `json:"ok"`
 	Keys       string `json:"keys"`
 	KeyCount   int    `json:"key_count"`
+	CmdKeys    string `json:"cmd_keys"` // keys typed in Normal/operator-pending/Visual mode
 	Par        int    `json:"par"`
 	DurationMS int    `json:"duration_ms"`
 	Buffer     string `json:"buffer"`

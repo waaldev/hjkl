@@ -17,6 +17,7 @@ type Outcome struct {
 	FirstClear bool
 	Quality    int
 	DotScore   string
+	Technique  string // set when a require/forbid rule capped the stars
 }
 
 func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch curriculum.Challenge, res runner.Result) (Outcome, error) {
@@ -25,6 +26,22 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		beltRank = b.Rank
 	}
 	stars := game.Stars(res.OK, res.KeyCount, ch.Par)
+	technique := ""
+	if res.OK {
+		ok, msg, err := game.CheckTechnique(res.CmdKeys, ch.Require, ch.Forbid)
+		if err != nil {
+			return Outcome{}, err
+		}
+		if !ok {
+			if stars > 1 {
+				stars = 1
+			}
+			if ch.Technique != "" {
+				msg = "solved, but " + ch.Technique
+			}
+		}
+		technique = msg
+	}
 	quality := game.Quality(res.OK, stars, res.KeyCount, ch.Par)
 
 	prev, _ := st.Progress(ctx)
@@ -52,37 +69,15 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 
 	now := time.Now()
 	for _, skill := range ch.Skills {
-		card, ok, err := st.SRS(ctx, skill)
-		if err != nil {
-			return Outcome{}, err
-		}
-		var sc srs.Card
-		if ok {
-			sc = srs.Card{
-				Skill: card.Skill, Easiness: card.Easiness, IntervalDays: card.IntervalDays,
-				Repetitions: card.Repetitions, DueAt: card.DueAt, LastQuality: card.LastQuality, LastReviewAt: card.LastReviewAt,
-			}
-		} else {
-			sc = srs.NewCard(skill, now)
-		}
-		sc = srs.Review(sc, quality, now)
-		if err := st.UpsertSRS(ctx, store.SRSCard{
-			Skill: sc.Skill, Easiness: sc.Easiness, IntervalDays: sc.IntervalDays,
-			Repetitions: sc.Repetitions, DueAt: sc.DueAt, LastQuality: sc.LastQuality, LastReviewAt: sc.LastReviewAt,
-		}); err != nil {
+		if err := ReviewSkill(ctx, st, skill, quality, now, true); err != nil {
 			return Outcome{}, err
 		}
 	}
 
-	seq := res.Keys
-	if seq == "" {
-		seq = ch.Solution
-	}
-	for _, pair := range game.LightFromKeys(seq) {
-		_ = st.LightGrammar(ctx, pair[0], pair[1])
-	}
+	// The grid shows what you actually typed: your own command keys, on
+	// success only. Never the canonical solution, never Insert-mode text.
 	if res.OK {
-		for _, pair := range game.LightFromKeys(ch.Solution) {
+		for _, pair := range game.LightFromKeys(res.CmdKeys) {
 			_ = st.LightGrammar(ctx, pair[0], pair[1])
 		}
 	}
@@ -92,7 +87,8 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		XP:         xp,
 		FirstClear: first,
 		Quality:    quality,
-		DotScore:   game.DotScore(res.Keys, ch.Principle),
+		DotScore:   game.DotScore(res.CmdKeys, ch.Principle),
+		Technique:  technique,
 	}, nil
 }
 
@@ -141,4 +137,34 @@ func NextInBelt(cat *curriculum.Catalog, belt string, stars map[string]int) (cur
 		}
 	}
 	return curriculum.Challenge{}, false
+}
+
+// ReviewSkill schedules one SRS review for a skill, at most once per day (see
+// srs.Counts). With create=false a skill that has no card yet is left alone,
+// so real-world use never schedules a skill the dojo hasn't taught.
+func ReviewSkill(ctx context.Context, st *store.Store, skill string, quality int, now time.Time, create bool) error {
+	card, ok, err := st.SRS(ctx, skill)
+	if err != nil {
+		return err
+	}
+	var sc srs.Card
+	switch {
+	case ok:
+		sc = srs.Card{
+			Skill: card.Skill, Easiness: card.Easiness, IntervalDays: card.IntervalDays,
+			Repetitions: card.Repetitions, DueAt: card.DueAt, LastQuality: card.LastQuality, LastReviewAt: card.LastReviewAt,
+		}
+	case create:
+		sc = srs.NewCard(skill, now)
+	default:
+		return nil
+	}
+	if !srs.Counts(sc, quality, now) {
+		return nil
+	}
+	sc = srs.Review(sc, quality, now)
+	return st.UpsertSRS(ctx, store.SRSCard{
+		Skill: sc.Skill, Easiness: sc.Easiness, IntervalDays: sc.IntervalDays,
+		Repetitions: sc.Repetitions, DueAt: sc.DueAt, LastQuality: sc.LastQuality, LastReviewAt: sc.LastReviewAt,
+	})
 }

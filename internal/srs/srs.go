@@ -23,6 +23,28 @@ func NewCard(skill string, now time.Time) Card {
 	}
 }
 
+// Counts reports whether an attempt now should move the schedule.
+//
+// Only the first attempt per skill per day is a review; replays later that
+// day are practice. Without this, three replays in a row push a skill out
+// 1 → 6 → 15 days after half a minute of work. A success before the card is
+// due says nothing about retention at the interval, so it doesn't count
+// either; an early failure still does (it resets the card).
+func Counts(card Card, quality int, now time.Time) bool {
+	if card.LastReviewAt != nil && sameDay(*card.LastReviewAt, now) {
+		return false
+	}
+	if quality >= 3 && now.Before(card.DueAt) {
+		return false
+	}
+	return true
+}
+
+func sameDay(a, b time.Time) bool {
+	a, b = a.Local(), b.Local()
+	return a.Year() == b.Year() && a.YearDay() == b.YearDay()
+}
+
 // Review applies SM-2. quality is 0–5.
 func Review(card Card, quality int, now time.Time) Card {
 	if quality < 0 {
