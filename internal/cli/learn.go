@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -106,25 +108,71 @@ func newDrillCmd() *cobra.Command {
 }
 
 func playOne(a *app.App, ch curriculum.Challenge) error {
-	fmt.Printf("\n%s\n%s\npar %d\n\n", ch.Title, ch.Brief, ch.Par)
-	if ch.Teach != "" {
-		fmt.Println(ch.Teach)
-		fmt.Println()
+	return play(a, ch, false)
+}
+
+// play runs a drill, shows the results card, and offers "show me" and
+// "retry" while the run is short of three stars. Watching the par solution
+// and then doing it yourself straight away is the most valuable repetition.
+func play(a *app.App, ch curriculum.Challenge, review bool) error {
+	if review {
+		ch = ch.ForReview()
 	}
-	res, err := runner.Play(context.Background(), ch, a.Cfg.Nvim)
-	if err != nil && res.Keys == "" && res.Buffer == "" {
-		return err
+	in := bufio.NewReader(os.Stdin)
+	for {
+		if review {
+			fmt.Printf("\nreview · %s · %s\npar %d\n\n", strings.Join(ch.Skills, ", "), ch.Title, ch.Par)
+		} else {
+			fmt.Printf("\n%s\n%s\npar %d\n\n", ch.Title, ch.Brief, ch.Par)
+			if ch.Teach != "" {
+				fmt.Println(ch.Teach)
+				fmt.Println()
+			}
+		}
+		res, err := runner.Play(context.Background(), ch, a.Cfg.Nvim)
+		if err != nil && res.Keys == "" && res.Buffer == "" {
+			return err
+		}
+		out, aerr := progress.Apply(context.Background(), a.Store, a.Cat, ch, res)
+		if aerr != nil {
+			return aerr
+		}
+		printResult(ch, res, out)
+		if out.Stars == 3 || !isTTY() {
+			return nil
+		}
+		for {
+			fmt.Print("\n[s] show me   [r] retry   [enter] continue  ")
+			line, _ := in.ReadString('\n')
+			switch strings.TrimSpace(line) {
+			case "s":
+				if err := runner.Demo(context.Background(), ch, a.Cfg.Nvim); err != nil {
+					return err
+				}
+				continue
+			case "r":
+			default:
+				return nil
+			}
+			break
+		}
 	}
-	out, aerr := progress.Apply(context.Background(), a.Store, a.Cat, ch, res)
-	if aerr != nil {
-		return aerr
-	}
+}
+
+func printResult(ch curriculum.Challenge, res runner.Result, out progress.Outcome) {
 	status := "MISS"
 	if res.OK {
 		status = "CLEAR"
 	}
 	fmt.Printf("\n%s  %s  keys %d / par %d  xp +%d\n", status, starsText(out.Stars), res.KeyCount, ch.Par, out.XP)
-	fmt.Printf("you  %s\npar  %s\n", res.Keys, ch.Solution)
+	fmt.Printf("you  %s\n", res.Keys)
+	// On a miss the answer stays hidden: try again, or ask to be shown.
+	if res.OK {
+		fmt.Printf("par  %s\n", ch.Solution)
+	}
+	if out.HintsUsed > 0 {
+		fmt.Printf("hints used: %d (-%d star)\n", out.HintsUsed, out.HintsUsed)
+	}
 	if out.Technique != "" {
 		fmt.Println(out.Technique)
 	}
@@ -134,7 +182,6 @@ func playOne(a *app.App, ch curriculum.Challenge) error {
 	if p := curriculum.PrincipleText(ch.Principle); p != "" {
 		fmt.Println(p)
 	}
-	return nil
 }
 
 func starsText(n int) string {

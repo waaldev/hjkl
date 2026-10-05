@@ -27,6 +27,14 @@ challenges:
     start_cursor: [1, 1]
     par: 2
     solution: "dw"
+    variants:
+      - start: "TODO fix the parser"
+        target: "fix the parser"
+        solution: "dw"
+      - start: "    return nil"
+        target: "    nil"
+        start_cursor: [1, 5]
+        solution: "dw"
 
   - id: orange-02-d-dollar
     title: Delete to end of line

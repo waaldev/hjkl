@@ -19,6 +19,30 @@ func Stars(ok bool, keyCount, par int) int {
 	return 1
 }
 
+// HintCap removes one star per hint used, never below one for a clear.
+func HintCap(stars, hintsUsed int) int {
+	if stars <= 0 || hintsUsed <= 0 {
+		return stars
+	}
+	stars -= hintsUsed
+	if stars < 1 {
+		stars = 1
+	}
+	return stars
+}
+
+// HintQuality lowers SRS quality for help taken: any hint makes it at best
+// a hesitant recall (3); seeing the answer means it was not recalled (2).
+func HintQuality(quality, hintsUsed int, sawAnswer bool) int {
+	switch {
+	case sawAnswer && quality > 2:
+		return 2
+	case hintsUsed > 0 && quality > 3:
+		return 3
+	}
+	return quality
+}
+
 // XP for a single attempt. firstClear adds a one-time bonus.
 func XP(beltRank, stars int, firstClear bool) int {
 	if stars <= 0 {

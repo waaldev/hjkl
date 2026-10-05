@@ -31,3 +31,12 @@ func TestCheckTechnique(t *testing.T) {
 		t.Fatal("bad regexp should error")
 	}
 }
+
+func TestHintCost(t *testing.T) {
+	if HintCap(3, 0) != 3 || HintCap(3, 1) != 2 || HintCap(3, 5) != 1 || HintCap(0, 2) != 0 {
+		t.Fatal("HintCap")
+	}
+	if HintQuality(5, 0, false) != 5 || HintQuality(5, 1, false) != 3 || HintQuality(5, 3, true) != 2 || HintQuality(1, 3, true) != 1 {
+		t.Fatal("HintQuality")
+	}
+}

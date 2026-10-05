@@ -18,6 +18,7 @@ type Outcome struct {
 	Quality    int
 	DotScore   string
 	Technique  string // set when a require/forbid rule capped the stars
+	HintsUsed  int
 }
 
 func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch curriculum.Challenge, res runner.Result) (Outcome, error) {
@@ -42,7 +43,9 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		}
 		technique = msg
 	}
-	quality := game.Quality(res.OK, stars, res.KeyCount, ch.Par)
+	stars = game.HintCap(stars, res.HintsUsed)
+	sawAnswer := !ch.Review && res.HintsUsed >= len(ch.HintLadder())
+	quality := game.HintQuality(game.Quality(res.OK, stars, res.KeyCount, ch.Par), res.HintsUsed, sawAnswer)
 
 	prev, _ := st.Progress(ctx)
 	first := res.OK && (prev[ch.ID].FirstClearAt == nil)
@@ -89,6 +92,7 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		Quality:    quality,
 		DotScore:   game.DotScore(res.CmdKeys, ch.Principle),
 		Technique:  technique,
+		HintsUsed:  res.HintsUsed,
 	}, nil
 }
 

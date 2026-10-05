@@ -29,7 +29,32 @@ works in Neovim**. `hjkl dev verify` is the gate.
   require: ['\.']           # optional regexps the player's command keys must match
   forbid: ['[2-9]dd']       # optional regexps they must not match
   technique: "this drill is about dd then ."   # shown when a rule fails
+  hints:                    # optional ladder, gentlest first (F1, -1 star each)
+    - "think: operators"
+    - "d waits for a motion"
+    - "answer: dw"
+  variants:                 # optional extra buffers for reviews
+    - start: "TODO fix it"
+      target: "fix it"
+      solution: "dw"
 ```
+
+### Hints and reviews
+
+F1 climbs a **hint ladder** one rung at a time, and each rung costs a star.
+Seeing the last rung (the answer) counts as a failed recall for spaced
+repetition. Without `hints:`, the ladder is built for you: the skill family
+(`think: text objects (iw aw ...)`), then your `hint`, then the answer. So
+write `hint` as a nudge, not as the solution.
+
+Keep the answer out of `brief`. The brief says *what* to do ("Remove
+hello"), and `teach` explains *how*. `hjkl daily` hides both, so a review
+tests recall.
+
+Reviews rotate through the drills for a skill and pick a random
+**variant**, so players practice the skill instead of memorizing one buffer.
+Variants are verified like drills (`hjkl dev verify` checks `id#1`,
+`id#2`, ...). Empty fields keep the base drill's values.
 
 Navigate drills need `target_cursor` and usually omit a distinct `target`
 (it defaults to `start`).
