@@ -94,21 +94,28 @@ const drillAttempts = 3
 // accept it (in production: replayed in nvim, within par, following its own
 // rules; see NvimVerifier). Failures are fed back to the model.
 func GenerateDrill(ctx context.Context, p Provider, req DrillRequest, verify Verifier) (curriculum.Challenge, error) {
+	return gated(ctx, p, drillPrompt(req), func(raw json.RawMessage) (curriculum.Challenge, error) {
+		var ch curriculum.Challenge
+		if err := json.Unmarshal(raw, &ch); err != nil {
+			return ch, fmt.Errorf("reply did not match the schema")
+		}
+		ch = normalizeDrill(ch, req.Skill)
+		return ch, CheckGenerated(ch, ch.Skills[0])
+	}, verify)
+}
+
+// gated asks for a drill until one passes: build parses and checks the
+// reply, verify replays it. Every rejection is fed back to the model, up
+// to drillAttempts times.
+func gated(ctx context.Context, p Provider, prompt string, build func(json.RawMessage) (curriculum.Challenge, error), verify Verifier) (curriculum.Challenge, error) {
 	feedback := ""
 	var lastErr error
 	for attempt := 0; attempt < drillAttempts; attempt++ {
-		raw, err := CompleteJSON(ctx, p, Request{System: teachSystem, Prompt: drillPrompt(req) + feedback})
+		raw, err := CompleteJSON(ctx, p, Request{System: teachSystem, Prompt: prompt + feedback})
 		if err != nil {
 			return curriculum.Challenge{}, err
 		}
-		var ch curriculum.Challenge
-		if err := json.Unmarshal(raw, &ch); err != nil {
-			lastErr = err
-			feedback = "\n\nYour previous reply did not match the schema. Reply with the JSON object only."
-			continue
-		}
-		ch = normalizeDrill(ch, req.Skill)
-		err = CheckGenerated(ch, ch.Skills[0])
+		ch, err := build(raw)
 		if err == nil {
 			err = verify(ctx, ch)
 		}

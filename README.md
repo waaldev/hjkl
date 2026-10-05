@@ -51,6 +51,11 @@ questions (`hjkl ask`, followed by a drill to practice the answer) and
 generate drills. Generated drills are replayed in Neovim and dropped if
 they don't work; the ones that pass are saved for your reviews.
 
+- `hjkl coach review` writes a weekly review from your coach counts and
+  sets quests; `hjkl coach quest` tracks them.
+- `hjkl boss <file>` builds a multi-step boss fight from a block of your
+  own code. It asks before sending anything and refuses secret files.
+
 **`:HjklWhy`** finds a shorter way to make your last edit in your own
 project. The suggestion is replayed in Neovim and shown only if it
 produces the same result in fewer keys. You can practice it or save it

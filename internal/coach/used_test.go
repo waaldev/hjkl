@@ -16,6 +16,7 @@ func TestUsedSkills(t *testing.T) {
 		"ciw": {"operators", "text-objects"},
 		"d2w": {"operators", "words", "counts"},
 		".":   {"dot"},
+		"cgn": {"operators", "gn"},
 		"dd":  {"dd-yy-p"},
 		"d<":  {},
 	}

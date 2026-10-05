@@ -67,3 +67,25 @@ func TestGenerateDrillFromQuestion(t *testing.T) {
 		t.Fatalf("skills come from the drill: %v", ch.Skills)
 	}
 }
+
+func TestWeekly(t *testing.T) {
+	p := &scripted{replies: []string{`{"review":" Fewer xxxx this week. ","quests":[{"kind":"use","keys":"ciw","target":5,"text":"Use ciw 5 times"}]}`}}
+	w, err := Weekly(context.Background(), p, WeeklyStats{
+		AntiPatterns: map[string]int{"repeat-x": 12}, Used: map[string]int{"dw": 4},
+		Patterns: []string{"repeat-x"}, Unlocked: []string{"operators"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Review != "Fewer xxxx this week." || len(w.Quests) != 1 || w.Quests[0].Keys != "ciw" {
+		t.Fatalf("weekly=%+v", w)
+	}
+	for _, want := range []string{"repeat-x: 12", "dw: 4", "operators"} {
+		if !strings.Contains(p.prompts[0], want) {
+			t.Fatalf("prompt missing %q:\n%s", want, p.prompts[0])
+		}
+	}
+	if strings.Contains(p.prompts[0], "func ") {
+		t.Fatal("the weekly review must only see counts")
+	}
+}

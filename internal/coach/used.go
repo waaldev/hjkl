@@ -31,6 +31,9 @@ func UsedSkills(keys string) []string {
 	if keys == "dd" || keys == "yy" {
 		return []string{"dd-yy-p"}
 	}
+	if keys == "cgn" || keys == "dgn" || keys == "ygn" {
+		return []string{"operators", "gn"}
+	}
 	out := []string{}
 	for _, pair := range game.LightFromKeys(keys) {
 		out = append(out, "operators")
