@@ -127,19 +127,30 @@ func saveDrill(path string) map[string]any {
 	if err != nil {
 		return map[string]any{"ok": false, "error": err.Error()}
 	}
-	dir, err := config.DrillsDir()
-	if err == nil {
-		err = os.MkdirAll(dir, 0o700)
-	}
+	dest, err := savePersonal(ch)
 	if err != nil {
 		return map[string]any{"ok": false, "error": err.Error()}
 	}
-	dest := filepath.Join(dir, ch.ID+".json")
-	raw, _ := json.MarshalIndent(ch, "", "  ")
-	if err := os.WriteFile(dest, raw, 0o600); err != nil {
-		return map[string]any{"ok": false, "error": err.Error()}
-	}
 	return map[string]any{"ok": true, "path": dest, "skills": ch.Skills}
+}
+
+// savePersonal stores a verified drill in the personal drills folder.
+// Reviews for its skills can pick it from then on, offline.
+func savePersonal(ch curriculum.Challenge) (string, error) {
+	dir, err := config.DrillsDir()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	ch.Belt = curriculum.PersonalBelt
+	dest := filepath.Join(dir, ch.ID+".json")
+	raw, err := json.MarshalIndent(ch, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return dest, os.WriteFile(dest, raw, 0o600)
 }
 
 func readChallenge(path string) (curriculum.Challenge, error) {

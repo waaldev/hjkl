@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/waaldev/hjkl/internal/curriculum"
 	"github.com/waaldev/hjkl/internal/game"
+	"github.com/waaldev/hjkl/internal/keys"
 	"github.com/waaldev/hjkl/internal/runner"
 )
 
@@ -75,35 +77,113 @@ const challengeSchema = `{
   "language": "optional"
 }`
 
-func GenerateChallenge(ctx context.Context, p Provider, skill, language string, unlocked []string) (curriculum.Challenge, error) {
-	prompt := fmt.Sprintf(`Generate ONE hjkl drill as a JSON object matching this schema:
+// DrillRequest asks for one drill: either for a skill, or for the
+// technique that answers a student's question (Question and Answer set).
+type DrillRequest struct {
+	Skill    string
+	Question string
+	Answer   string
+	Language string
+	Unlocked []string
+}
+
+const drillAttempts = 3
+
+// GenerateDrill asks the provider for a drill and returns it only once it
+// passes the gate: it must teach something (CheckGenerated) and verify must
+// accept it (in production: replayed in nvim, within par, following its own
+// rules; see NvimVerifier). Failures are fed back to the model.
+func GenerateDrill(ctx context.Context, p Provider, req DrillRequest, verify Verifier) (curriculum.Challenge, error) {
+	feedback := ""
+	var lastErr error
+	for attempt := 0; attempt < drillAttempts; attempt++ {
+		raw, err := CompleteJSON(ctx, p, Request{System: teachSystem, Prompt: drillPrompt(req) + feedback})
+		if err != nil {
+			return curriculum.Challenge{}, err
+		}
+		var ch curriculum.Challenge
+		if err := json.Unmarshal(raw, &ch); err != nil {
+			lastErr = err
+			feedback = "\n\nYour previous reply did not match the schema. Reply with the JSON object only."
+			continue
+		}
+		ch = normalizeDrill(ch, req.Skill)
+		err = CheckGenerated(ch, ch.Skills[0])
+		if err == nil {
+			err = verify(ctx, ch)
+		}
+		if err != nil {
+			lastErr = err
+			feedback = fmt.Sprintf("\n\nYour previous drill was rejected: %v. Its solution was %q. Fix it.", err, ch.Solution)
+			continue
+		}
+		return ch, nil
+	}
+	return curriculum.Challenge{}, fmt.Errorf("no drill passed the check: %v", lastErr)
+}
+
+func drillPrompt(req DrillRequest) string {
+	focus := "Focus skill: " + req.Skill
+	if req.Question != "" {
+		focus = fmt.Sprintf("Focus: the technique that answers this question.\nQuestion: %s\nThe sensei's answer: %s\nPut the skill ids it uses in skills, most important first.", req.Question, req.Answer)
+	}
+	return fmt.Sprintf(`Generate ONE hjkl drill as a JSON object matching this schema:
 %s
 
-Focus skill: %s
+%s
 Language flavor (comments/identifiers only; keep the buffer tiny): %s
 Unlocked skills (do not require others, except at most one stretch): %s
+Known skill ids: %s
 
 Rules:
 - ASCII only.
 - par MUST equal the keystroke count of solution (<Esc> counts as 1).
-- solution must actually transform start into target (or land on target_cursor for navigate).
-- start and target should differ for transform/dot/golf/boss.
-- Keep start under 8 lines.`, challengeSchema, skill, language, strings.Join(unlocked, ", "))
-	raw, err := CompleteJSON(ctx, p, Request{System: teachSystem, Prompt: prompt})
-	if err != nil {
-		return curriculum.Challenge{}, err
+- solution must actually transform start into target (or land on target_cursor for navigate), ending in Normal mode.
+- start and target must differ for transform/dot/golf/boss.
+- Keep start under 8 lines.`, challengeSchema, focus, req.Language, strings.Join(req.Unlocked, ", "), strings.Join(skillIDs(), ", "))
+}
+
+// normalizeDrill gives a generated drill a stable personal id and known
+// skills (the requested skill first), so it can be saved and reviewed.
+func normalizeDrill(ch curriculum.Challenge, focus string) curriculum.Challenge {
+	skills := knownSkills(ch.Skills)
+	if focus != "" && !contains(skills, focus) {
+		skills = append([]string{focus}, skills...)
 	}
-	var ch curriculum.Challenge
-	if err := json.Unmarshal(raw, &ch); err != nil {
-		return curriculum.Challenge{}, err
+	if len(skills) > 1 && skills[len(skills)-1] == "golf" && !contains(ch.Skills, "golf") {
+		skills = skills[:len(skills)-1] // knownSkills' fallback, not needed
 	}
+	ch.Skills = skills
+	sum := sha1.Sum([]byte(ch.Start + "\x00" + ch.Target + "\x00" + ch.Solution))
+	ch.ID = fmt.Sprintf("ai-%s-%x", skills[0], sum[:4])
+	ch.Belt = curriculum.PersonalBelt
 	if ch.Type == "" {
 		ch.Type = curriculum.TypeTransform
 	}
-	if len(ch.StartCursor) == 0 {
+	if len(ch.StartCursor) != 2 {
 		ch.StartCursor = []int{1, 1}
 	}
-	return ch, nil
+	if ch.Par <= 0 {
+		ch.Par = keys.Count(ch.Solution)
+	}
+	return ch
+}
+
+func skillIDs() []string {
+	out := make([]string, 0, len(curriculum.SkillDocs))
+	for _, d := range curriculum.SkillDocs {
+		out = append(out, d.ID)
+	}
+	return out
+}
+
+func contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 // skillSignatures are keys a solution must contain to exercise a skill. A
@@ -147,25 +227,32 @@ func CheckGenerated(ch curriculum.Challenge, focus string) error {
 	return nil
 }
 
+// NvimVerifier replays a drill's solution in a headless nvim and checks it
+// reaches the target within par and follows the drill's own rules.
+func NvimVerifier(nvim string) Verifier {
+	return func(ctx context.Context, ch curriculum.Challenge) error {
+		res, err := runner.Verify(ctx, ch, nvim)
+		if err != nil {
+			return fmt.Errorf("verify gate: %w", err)
+		}
+		if !res.OK {
+			return fmt.Errorf("verify gate: solution did not reach the target")
+		}
+		if ch.Par > 0 && res.KeyCount > ch.Par {
+			return fmt.Errorf("verify gate: solution took %d keys, par is %d", res.KeyCount, ch.Par)
+		}
+		if ok, msg, err := game.CheckTechnique(res.CmdKeys, ch.Require, ch.Forbid); err != nil || !ok {
+			return fmt.Errorf("verify gate: technique rules: %v%s", err, msg)
+		}
+		return nil
+	}
+}
+
 // VerifyGate checks a generated drill: it must teach the focus skill
-// (CheckGenerated), and its solution must reach the target in nvim, within
-// par, following its own technique rules.
+// (CheckGenerated) and pass NvimVerifier.
 func VerifyGate(ctx context.Context, ch curriculum.Challenge, focus, nvim string) error {
 	if err := CheckGenerated(ch, focus); err != nil {
 		return err
 	}
-	res, err := runner.Verify(ctx, ch, nvim)
-	if err != nil {
-		return fmt.Errorf("verify gate: %w", err)
-	}
-	if !res.OK {
-		return fmt.Errorf("verify gate: solution did not reach the target")
-	}
-	if ch.Par > 0 && res.KeyCount > ch.Par {
-		return fmt.Errorf("verify gate: solution took %d keys, par is %d", res.KeyCount, ch.Par)
-	}
-	if ok, msg, err := game.CheckTechnique(res.CmdKeys, ch.Require, ch.Forbid); err != nil || !ok {
-		return fmt.Errorf("verify gate: technique rules: %v%s", err, msg)
-	}
-	return nil
+	return NvimVerifier(nvim)(ctx, ch)
 }

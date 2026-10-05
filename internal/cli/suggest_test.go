@@ -68,3 +68,29 @@ func TestSuggestEndToEnd(t *testing.T) {
 		t.Fatalf("personal drills: %+v %v", mine, err)
 	}
 }
+
+func TestSavedAIDrillJoinsReviews(t *testing.T) {
+	t.Setenv("HJKL_DATA_DIR", t.TempDir())
+	ch := curriculum.Challenge{
+		ID: "ai-text-objects-1", Belt: "green", Title: "Delete inner word", Type: curriculum.TypeTransform,
+		Skills: []string{"text-objects"}, Start: "say hello now", Target: "say  now",
+		StartCursor: []int{1, 6}, Par: 3, Solution: "diw",
+	}
+	if _, err := savePersonal(ch); err != nil {
+		t.Fatal(err)
+	}
+	dir, _ := config.DrillsDir()
+	mine, err := curriculum.LoadPersonal(dir)
+	if err != nil || len(mine) != 1 || mine[0].Belt != curriculum.PersonalBelt {
+		t.Fatalf("saved drill: %+v %v", mine, err)
+	}
+	cat, _ := curriculum.Load()
+	cat.AddPersonal(mine...)
+	found := false
+	for _, c := range cat.ChallengesForSkill("text-objects") {
+		found = found || c.ID == ch.ID
+	}
+	if !found {
+		t.Fatal("a saved AI drill should be a review candidate for its skill")
+	}
+}
