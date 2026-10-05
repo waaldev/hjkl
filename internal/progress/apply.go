@@ -2,6 +2,7 @@ package progress
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/waaldev/hjkl/internal/curriculum"
@@ -19,6 +20,7 @@ type Outcome struct {
 	DotScore   string
 	Technique  string // set when a require/forbid rule capped the stars
 	HintsUsed  int
+	Fluent     bool // at par and within FluentMS
 }
 
 func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch curriculum.Challenge, res runner.Result) (Outcome, error) {
@@ -45,7 +47,7 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 	}
 	stars = game.HintCap(stars, res.HintsUsed)
 	sawAnswer := !ch.Review && res.HintsUsed >= len(ch.HintLadder())
-	quality := game.HintQuality(game.Quality(res.OK, stars, res.KeyCount, ch.Par), res.HintsUsed, sawAnswer)
+	quality := game.HintQuality(game.Quality(res.OK, stars, res.DurationMS, ch.Par), res.HintsUsed, sawAnswer)
 
 	prev, _ := st.Progress(ctx)
 	first := res.OK && (prev[ch.ID].FirstClearAt == nil)
@@ -68,6 +70,15 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 	})
 	if err != nil {
 		return Outcome{}, err
+	}
+
+	// Track new clears since the last review, for interleaving (Next).
+	switch {
+	case ch.Review && res.OK:
+		_ = st.SetMeta(ctx, metaNewSinceReview, "0")
+	case first:
+		v, _ := st.Meta(ctx, metaNewSinceReview)
+		_ = st.SetMeta(ctx, metaNewSinceReview, strconv.Itoa(atoi(v)+1))
 	}
 
 	now := time.Now()
@@ -93,6 +104,7 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		DotScore:   game.DotScore(res.CmdKeys, ch.Principle),
 		Technique:  technique,
 		HintsUsed:  res.HintsUsed,
+		Fluent:     res.OK && stars == 3 && res.DurationMS <= game.FluentMS(ch.Par),
 	}, nil
 }
 
@@ -171,4 +183,58 @@ func ReviewSkill(ctx context.Context, st *store.Store, skill string, quality int
 		Skill: sc.Skill, Easiness: sc.Easiness, IntervalDays: sc.IntervalDays,
 		Repetitions: sc.Repetitions, DueAt: sc.DueAt, LastQuality: sc.LastQuality, LastReviewAt: sc.LastReviewAt,
 	})
+}
+
+// PickReview rotates through the drills that teach a skill, least recently
+// played first, and picks one of its variants at random, so a review tests
+// the skill rather than the memory of one puzzle. Drills never cleared are
+// skipped when a cleared one exists: a review should be recall, not new
+// material.
+func PickReview(chs []curriculum.Challenge, stars map[string]int, last map[string]time.Time, intn func(int) int) curriculum.Challenge {
+	pool := chs[:0:0]
+	for _, ch := range chs {
+		if stars[ch.ID] > 0 {
+			pool = append(pool, ch)
+		}
+	}
+	if len(pool) == 0 {
+		pool = chs
+	}
+	best := pool[0]
+	for _, ch := range pool[1:] {
+		if last[ch.ID].Before(last[best.ID]) {
+			best = ch
+		}
+	}
+	// -1 is the base drill; 0..n-1 are its variants.
+	return best.WithVariant(intn(len(best.Variants)+1) - 1)
+}
+
+// InterleaveEvery is how many new drills are cleared before "next" serves
+// a due review. Mixing old skills into new practice beats learning in
+// blocks for long-term retention.
+const InterleaveEvery = 3
+
+const metaNewSinceReview = "new_since_review"
+
+// Next returns the next drill to play: usually the next new drill, but
+// after InterleaveEvery new clears, a review of a due skill (review=true;
+// the challenge is already in review form).
+func Next(ctx context.Context, st *store.Store, cat *curriculum.Catalog, now time.Time, intn func(int) int) (ch curriculum.Challenge, review bool, ok bool) {
+	stars, _ := st.Stars(ctx)
+	if v, _ := st.Meta(ctx, metaNewSinceReview); atoi(v) >= InterleaveEvery {
+		if due, _ := st.DueSkills(ctx, now, 1); len(due) > 0 {
+			if chs := cat.ChallengesForSkill(due[0].Skill); len(chs) > 0 {
+				last, _ := st.LastAttempts(ctx)
+				return PickReview(chs, stars, last, intn).ForReview(), true, true
+			}
+		}
+	}
+	ch, ok = NextChallenge(cat, stars)
+	return ch, false, ok
+}
+
+func atoi(s string) int {
+	n, _ := strconv.Atoi(s)
+	return n
 }

@@ -40,3 +40,13 @@ func TestHintCost(t *testing.T) {
 		t.Fatal("HintQuality")
 	}
 }
+
+func TestQualityFluency(t *testing.T) {
+	fast, slow := FluentMS(4)-1, FluentMS(4)+1
+	if Quality(true, 3, fast, 4) != 5 || Quality(true, 3, slow, 4) != 4 {
+		t.Fatal("three stars: fluent is 5, slow is 4")
+	}
+	if Quality(true, 2, fast, 4) != 3 || Quality(false, 0, fast, 4) != 1 {
+		t.Fatal("stars still dominate")
+	}
+}

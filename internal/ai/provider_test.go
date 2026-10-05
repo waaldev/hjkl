@@ -118,9 +118,29 @@ func TestVerifyGateRejectsWrongChallenge(t *testing.T) {
 		Par:         1,
 		Solution:    "l",
 	}
-	err := VerifyGate(context.Background(), ch, "nvim")
+	err := VerifyGate(context.Background(), ch, "insert", "nvim")
 	if err == nil {
 		t.Fatal("expected reject")
+	}
+}
+
+func TestCheckGeneratedRejectsDrillsThatTeachNothing(t *testing.T) {
+	good := curriculum.Challenge{Type: curriculum.TypeTransform, Start: "say hello now", Target: "say  now", Solution: "diw"}
+	if err := CheckGenerated(good, "text-objects"); err != nil {
+		t.Fatalf("good drill rejected: %v", err)
+	}
+	cases := map[string]struct {
+		ch    curriculum.Challenge
+		focus string
+	}{
+		"skill not used": {curriculum.Challenge{Type: curriculum.TypeTransform, Start: "say hello now", Target: "say  now", Solution: "xxxxx"}, "text-objects"},
+		"nothing to do":  {curriculum.Challenge{Type: curriculum.TypeTransform, Start: "a", Target: "a", Solution: "dw"}, "operators"},
+		"already there":  {curriculum.Challenge{Type: curriculum.TypeNavigate, StartCursor: []int{1, 3}, TargetCursor: []int{1, 3}, Solution: "w"}, "words"},
+	}
+	for name, c := range cases {
+		if err := CheckGenerated(c.ch, c.focus); err == nil {
+			t.Errorf("%s: expected reject", name)
+		}
 	}
 }
 

@@ -58,15 +58,24 @@ func XP(beltRank, stars int, firstClear bool) int {
 	return xp
 }
 
-// Quality maps an attempt onto the SM-2 0–5 scale.
-func Quality(ok bool, stars, keyCount, par int) int {
+// FluentMS is how long a fluent run of a drill takes: a moment to read the
+// buffer, then a steady pace per keystroke. Slower than this is a correct
+// but effortful recall.
+func FluentMS(par int) int {
+	return 3000 + 400*par
+}
+
+// Quality maps an attempt onto the SM-2 0–5 scale. Speed matters: muscle
+// memory is the goal, so a three-star run that needed time to work out is
+// a 4, and only a fluent one is a 5.
+func Quality(ok bool, stars, durationMS, par int) int {
 	if !ok {
 		return 1
 	}
 	switch stars {
 	case 3:
-		if par > 0 && keyCount < par {
-			return 5
+		if durationMS > 0 && durationMS > FluentMS(par) {
+			return 4
 		}
 		return 5
 	case 2:
