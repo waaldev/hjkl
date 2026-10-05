@@ -400,6 +400,26 @@ func (s *Store) CoachSummary(ctx context.Context, since time.Time) (map[string]i
 	return out, rows.Err()
 }
 
+// LastAttempts returns when each challenge was last played.
+func (s *Store) LastAttempts(ctx context.Context) (map[string]time.Time, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT challenge_id, MAX(completed_at) FROM attempts GROUP BY challenge_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]time.Time{}
+	for rows.Next() {
+		var id, at string
+		if err := rows.Scan(&id, &at); err != nil {
+			return nil, err
+		}
+		if t, err := time.Parse(time.RFC3339Nano, at); err == nil {
+			out[id] = t
+		}
+	}
+	return out, rows.Err()
+}
+
 // CoachUsage sums real-world command uses ("used" events) by keys, e.g. ciw.
 func (s *Store) CoachUsage(ctx context.Context, since time.Time) (map[string]int, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT keys, SUM(count) FROM coach_events WHERE ts >= ? AND pattern = 'used' GROUP BY keys`, dbTime(since))

@@ -2,7 +2,7 @@
 -- Env:
 --   HJKL_CHALLENGE_PATH  JSON
 --   HJKL_RESULT_PATH     result JSON
---   HJKL_MODE            play | verify
+--   HJKL_MODE            play | verify | demo
 
 vim.opt.compatible = false
 vim.opt.swapfile = false
@@ -75,6 +75,11 @@ local target_cursor = challenge.target_cursor
 local kind = challenge.type or "transform"
 
 local recorded = {}
+local hints = challenge.hints
+if type(hints) ~= "table" or #hints == 0 then
+  hints = { challenge.hint or "No hint." }
+end
+local hints_used = 0
 -- Keys typed outside Insert/Cmdline. Used for the Grammar Grid and technique
 -- rules so text you type (e.g. "yes") never counts as a command.
 local cmd_recorded = {}
@@ -183,6 +188,7 @@ local function finish(ok, reason)
     keys = table.concat(recorded, ""),
     key_count = #recorded,
     cmd_keys = table.concat(cmd_recorded, ""),
+    hints_used = hints_used,
     par = challenge.par or 0,
     duration_ms = duration_ms(),
     buffer = table.concat(buf_lines(work_buf), "\n"),
@@ -199,12 +205,48 @@ local function finish(ok, reason)
   end)
 end
 
+local function label()
+  local belt = string.upper(tostring(challenge.belt or ""))
+  if challenge.review then
+    belt = belt .. " REVIEW"
+  end
+  return belt
+end
+
+local function hint_label()
+  local left = #hints - hints_used
+  if left <= 0 then
+    return "F1 hint (none left)"
+  end
+  return string.format("F1 hint (%d left, -1 star each)", left)
+end
+
+local function set_winbar()
+  if not (work_win and vim.api.nvim_win_is_valid(work_win)) then
+    return
+  end
+  vim.wo[work_win].winbar = string.format(
+    " hjkl │ %s │ %s │ keys %d / par %d │ %s  F10 abort ",
+    label(),
+    tostring(challenge.title or ""),
+    #recorded,
+    challenge.par or 0,
+    hint_label()
+  )
+end
+
 vim.keymap.set({ "n", "i", "v" }, "<F10>", function()
   finish(false, "aborted")
 end, { desc = "hjkl: abort", silent = true })
 
-vim.keymap.set("n", "<F1>", function()
-  vim.notify("hint: " .. (challenge.hint or "No hint."), vim.log.levels.INFO)
+-- F1 climbs the hint ladder one rung at a time; the last rung is repeated.
+vim.keymap.set({ "n", "i" }, "<F1>", function()
+  if hints_used < #hints then
+    hints_used = hints_used + 1
+  end
+  local i = math.max(hints_used, 1)
+  vim.api.nvim_echo({ { string.format("hint %d/%d: %s", i, #hints, hints[i]), "Question" } }, true, {})
+  set_winbar()
 end, { desc = "hjkl: hint", silent = true })
 
 vim.keymap.set("n", "ZZ", "<Nop>")
@@ -252,12 +294,7 @@ local function setup_buffers()
     vim.fn.sign_place(1, "hjkl", "HjklTarget", work_buf, { lnum = l })
   end
 
-  vim.wo[work_win].winbar = string.format(
-    " hjkl │ %s │ %s │ par %d │ F1 hint  F10 abort ",
-    string.upper(tostring(challenge.belt or "")),
-    tostring(challenge.title or ""),
-    challenge.par or 0
-  )
+  set_winbar()
 
   if challenge.brief and challenge.brief ~= "" then
     vim.api.nvim_echo({ { challenge.brief, "Question" } }, false, {})
@@ -278,14 +315,8 @@ vim.on_key(function(_, typed)
   if is_cmd_mode(vim.api.nvim_get_mode().mode) then
     table.insert(cmd_recorded, trans)
   end
-  if mode == "play" and work_win and vim.api.nvim_win_is_valid(work_win) then
-    vim.wo[work_win].winbar = string.format(
-      " hjkl │ %s │ %s │ keys %d / par %d │ F1 hint  F10 abort ",
-      string.upper(tostring(challenge.belt or "")),
-      tostring(challenge.title or ""),
-      #recorded,
-      challenge.par or 0
-    )
+  if mode == "play" then
+    set_winbar()
   end
 end, ns)
 
@@ -296,6 +327,53 @@ local function check_win()
   if won() then
     finish(true, "solved")
   end
+end
+
+-- Demo: play the par solution one key at a time so the player can watch
+-- it work. Nothing is recorded and nothing can be won.
+local function key_tokens(notation)
+  local out, i = {}, 1
+  while i <= #notation do
+    local angle = notation:match("^<[%w%-]+>", i)
+    if angle then
+      table.insert(out, angle)
+      i = i + #angle
+    else
+      table.insert(out, notation:sub(i, i))
+      i = i + 1
+    end
+  end
+  return out
+end
+
+if mode == "demo" then
+  finished = true -- disables recording and win checks
+  local toks = key_tokens(challenge.solution or "")
+  local shown = {}
+  local function show(text)
+    vim.wo[work_win].winbar = " hjkl │ DEMO │ " .. text .. " "
+  end
+  local function quit()
+    vim.cmd("qa!")
+  end
+  vim.keymap.set("n", "q", quit, { silent = true })
+  vim.keymap.set({ "n", "i", "v" }, "<F10>", quit, { silent = true })
+  local function step(i)
+    if i > #toks then
+      show(table.concat(shown, " ") .. "   ✓ done - press q to try it yourself")
+      return
+    end
+    table.insert(shown, toks[i])
+    show(table.concat(shown, " "))
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(toks[i], true, false, true), "n", false)
+    vim.defer_fn(function()
+      step(i + 1)
+    end, 550)
+  end
+  show("watch… (q to skip)")
+  vim.defer_fn(function()
+    step(1)
+  end, 900)
 end
 
 vim.api.nvim_create_autocmd({

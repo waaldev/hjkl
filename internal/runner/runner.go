@@ -22,6 +22,7 @@ type Result struct {
 	Keys       string `json:"keys"`
 	KeyCount   int    `json:"key_count"`
 	CmdKeys    string `json:"cmd_keys"` // keys typed in Normal/operator-pending/Visual mode
+	HintsUsed  int    `json:"hints_used"`
 	Par        int    `json:"par"`
 	DurationMS int    `json:"duration_ms"`
 	Buffer     string `json:"buffer"`
@@ -33,7 +34,7 @@ type Result struct {
 // Options control how Neovim is launched.
 type Options struct {
 	Nvim     string
-	Mode     string // play | verify
+	Mode     string // play | verify | demo
 	Timeout  time.Duration
 	Headless bool
 }
@@ -77,53 +78,28 @@ func Run(ctx context.Context, ch curriculum.Challenge, opt Options) (Result, err
 	}
 	defer os.RemoveAll(dir)
 
-	challengePath := filepath.Join(dir, "challenge.json")
-	resultPath := filepath.Join(dir, "result.json")
-	harnessPath := filepath.Join(dir, harnessName)
-
-	raw, err := json.Marshal(ch)
-	if err != nil {
-		return Result{}, err
-	}
-	if err := os.WriteFile(challengePath, raw, 0o600); err != nil {
-		return Result{}, err
-	}
-	script, err := embeds.FS.ReadFile("nvim/" + harnessName)
-	if err != nil {
-		return Result{}, fmt.Errorf("harness: %w", err)
-	}
-	if err := os.WriteFile(harnessPath, script, 0o600); err != nil {
-		return Result{}, err
-	}
-
-	args := []string{"--clean", "-n", "-i", "NONE"}
-	if opt.Headless {
-		args = append(args, "--headless")
-	}
-	args = append(args, "-c", "luafile "+harnessPath)
-
 	if opt.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, opt.Timeout)
 		defer cancel()
 	}
-
-	cmd := exec.CommandContext(ctx, opt.Nvim, args...)
-	cmd.Env = append(os.Environ(),
-		"HJKL_CHALLENGE_PATH="+challengePath,
-		"HJKL_RESULT_PATH="+resultPath,
-		"HJKL_MODE="+opt.Mode,
-	)
+	cmd, resultPath, err := prepare(ctx, ch, opt.Nvim, dir, opt.Mode, opt.Headless)
+	if err != nil {
+		return Result{}, err
+	}
 	var stderr bytes.Buffer
-	if opt.Mode == "play" {
+	if opt.Mode == "verify" {
+		cmd.Stderr = &stderr
+	} else {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-	} else {
-		cmd.Stderr = &stderr
 	}
 
 	runErr := cmd.Run()
+	if opt.Mode == "demo" {
+		return Result{}, nil
+	}
 	data, readErr := os.ReadFile(resultPath)
 	if readErr != nil {
 		if runErr != nil {
@@ -141,16 +117,32 @@ func Run(ctx context.Context, ch curriculum.Challenge, opt Options) (Result, err
 	return res, nil
 }
 
-// Command returns the nvim *exec.Cmd for an interactive play session without
-// waiting. Used by the TUI via tea.ExecProcess.
-func Command(ch curriculum.Challenge, nvim string, dir string) (*exec.Cmd, string, error) {
+// Demo plays the par solution slowly in nvim so the player can watch it.
+func Demo(ctx context.Context, ch curriculum.Challenge, nvim string) error {
+	_, err := Run(ctx, ch, Options{Nvim: nvim, Mode: "demo"})
+	return err
+}
+
+// Command returns the nvim *exec.Cmd for an interactive session (mode
+// "play" or "demo") without waiting. Used by the TUI via tea.ExecProcess.
+func Command(ch curriculum.Challenge, nvim, dir, mode string) (*exec.Cmd, string, error) {
 	if nvim == "" {
 		nvim = "nvim"
 	}
+	if mode == "" {
+		mode = "play"
+	}
+	return prepare(context.Background(), ch, nvim, dir, mode, false)
+}
+
+// prepare writes the challenge (with its hint ladder) and the harness into
+// dir and builds the nvim command.
+func prepare(ctx context.Context, ch curriculum.Challenge, nvim, dir, mode string, headless bool) (*exec.Cmd, string, error) {
 	challengePath := filepath.Join(dir, "challenge.json")
 	resultPath := filepath.Join(dir, "result.json")
 	harnessPath := filepath.Join(dir, harnessName)
 
+	ch.Hints = ch.HintLadder()
 	raw, err := json.Marshal(ch)
 	if err != nil {
 		return nil, "", err
@@ -160,17 +152,22 @@ func Command(ch curriculum.Challenge, nvim string, dir string) (*exec.Cmd, strin
 	}
 	script, err := embeds.FS.ReadFile("nvim/" + harnessName)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("harness: %w", err)
 	}
 	if err := os.WriteFile(harnessPath, script, 0o600); err != nil {
 		return nil, "", err
 	}
 
-	cmd := exec.Command(nvim, "--clean", "-n", "-i", "NONE", "-c", "luafile "+harnessPath)
+	args := []string{"--clean", "-n", "-i", "NONE"}
+	if headless {
+		args = append(args, "--headless")
+	}
+	args = append(args, "-c", "luafile "+harnessPath)
+	cmd := exec.CommandContext(ctx, nvim, args...)
 	cmd.Env = append(os.Environ(),
 		"HJKL_CHALLENGE_PATH="+challengePath,
 		"HJKL_RESULT_PATH="+resultPath,
-		"HJKL_MODE=play",
+		"HJKL_MODE="+mode,
 	)
 	return cmd, resultPath, nil
 }

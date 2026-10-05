@@ -47,6 +47,14 @@ type Challenge struct {
 	// not just its result.
 	Require []string `yaml:"require,omitempty" json:"require,omitempty"`
 	Forbid  []string `yaml:"forbid,omitempty" json:"forbid,omitempty"`
+	// Hints is an optional hand-written ladder, gentlest first. Without it
+	// the ladder is built from the skills, Hint and Solution (HintLadder).
+	Hints []string `yaml:"hints,omitempty" json:"hints,omitempty"`
+	// Variants are alternative buffers for the same skill, used by reviews
+	// so you practice the skill rather than memorize one puzzle.
+	Variants []Variant `yaml:"variants,omitempty" json:"-"`
+	// Review hides the lesson: no brief, no teach, only a skill-name hint.
+	Review bool `yaml:"-" json:"review,omitempty"`
 	// Technique is shown when a require/forbid rule fails.
 	Technique string `yaml:"technique,omitempty" json:"technique,omitempty"`
 	Language  string `yaml:"language,omitempty" json:"language,omitempty"`

@@ -80,3 +80,23 @@ func TestVerifyRecordsCommandKeysOnly(t *testing.T) {
 		t.Fatalf("cmd_keys=%q, want %q (keys=%q)", res.CmdKeys, "cw", res.Keys)
 	}
 }
+
+func TestVerifyCountsHints(t *testing.T) {
+	if _, err := exec.LookPath("nvim"); err != nil {
+		t.Skip("nvim not installed")
+	}
+	ch := curriculum.Challenge{
+		ID: "hints", Belt: "orange", Title: "Operator + word", Type: curriculum.TypeTransform,
+		Skills: []string{"operators"}, Hint: "d waits for a motion",
+		Start: "a b", Target: "b", StartCursor: []int{1, 1}, Par: 2, Solution: "<F1><F1>dw",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	res, err := Verify(ctx, ch, "nvim")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.HintsUsed != 2 || res.KeyCount != 2 {
+		t.Fatalf("hints_used=%d key_count=%d, want 2 and 2 (F1 is not a keystroke)", res.HintsUsed, res.KeyCount)
+	}
+}

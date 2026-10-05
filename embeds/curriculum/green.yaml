@@ -97,6 +97,15 @@ challenges:
     start_cursor: [1, 6]
     par: 3
     solution: "diw"
+    variants:
+      - start: "if err != nil { return err }"
+        target: "if  != nil { return err }"
+        start_cursor: [1, 5]
+        solution: "diw"
+      - start: "the quick brown fox"
+        target: "the quick  fox"
+        start_cursor: [1, 13]
+        solution: "diw"
 
   - id: green-06-daw
     title: Delete a word
@@ -131,6 +140,15 @@ challenges:
     start_cursor: [1, 9]
     par: 9
     solution: "ci\"world<Esc>"
+    variants:
+      - start: "name: \"draft\""
+        target: "name: \"final\""
+        start_cursor: [1, 1]
+        solution: "ci\"final<Esc>"
+      - start: "fmt.Println(\"hi there\")"
+        target: "fmt.Println(\"bye\")"
+        start_cursor: [1, 16]
+        solution: "ci\"bye<Esc>"
     language: go
 
   - id: green-08-ca-paren

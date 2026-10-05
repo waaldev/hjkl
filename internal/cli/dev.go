@@ -44,6 +44,17 @@ func newDevVerifyCmd() *cobra.Command {
 				}
 				chs = []curriculum.Challenge{ch}
 			}
+			// Every variant is its own drill to verify.
+			var all []curriculum.Challenge
+			for _, ch := range chs {
+				all = append(all, ch)
+				for v := range ch.Variants {
+					vc := ch.WithVariant(v)
+					vc.ID = fmt.Sprintf("%s#%d", ch.ID, v+1)
+					all = append(all, vc)
+				}
+			}
+			chs = all
 			failed := 0
 			for i, ch := range chs {
 				fmt.Printf("[%d/%d] %s … ", i+1, len(chs), ch.ID)
