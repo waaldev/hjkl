@@ -14,6 +14,7 @@ import (
 	"github.com/waaldev/hjkl/embeds"
 	"github.com/waaldev/hjkl/internal/ai"
 	"github.com/waaldev/hjkl/internal/app"
+	"github.com/waaldev/hjkl/internal/coach"
 	"github.com/waaldev/hjkl/internal/config"
 	"github.com/waaldev/hjkl/internal/progress"
 )
@@ -127,14 +128,32 @@ func newCoachQuestCmd() *cobra.Command {
 				ctx := context.Background()
 				sum, _ := a.Store.CoachSummary(ctx, time.Now().Add(-24*time.Hour))
 				due, _ := a.Store.DueSkills(ctx, time.Now(), 3)
-				fmt.Println("today's quest")
-				if n := sum["repeat-j"]; n >= 5 {
+				if qs, ok := coach.ActiveQuests(ctx, a.Store, time.Now()); ok {
+					left := coach.QuestWeek - time.Since(qs.Start)
+					fmt.Printf("this week's quests (%d days left)\n", int(left.Hours()/24)+1)
+					for _, p := range coach.Progress(ctx, a.Store, qs) {
+						mark := "○"
+						if p.Done {
+							mark = "✓"
+						}
+						status := fmt.Sprintf("%d/%d", p.Count, p.Quest.Target)
+						if p.Quest.Kind == "avoid" {
+							status = fmt.Sprintf("%d (keep at or under %d)", p.Count, p.Quest.Target)
+						}
+						fmt.Printf("  %s %s  %s\n", mark, p.Quest.Text, status)
+					}
+					fmt.Println()
+				}
+				_, aiQuests := coach.ActiveQuests(ctx, a.Store, time.Now())
+				fmt.Println("today")
+				// With weekly quests set, they replace the fixed habit tips.
+				if n := sum["repeat-j"]; n >= 5 && !aiQuests {
 					fmt.Printf("  • the coach saw %d j-streaks yesterday - use 5j or /search today\n", n)
 				}
-				if n := sum["visual-iw-delete"]; n > 0 {
+				if n := sum["visual-iw-delete"]; n > 0 && !aiQuests {
 					fmt.Println("  • swap one viwd for diw so . can replay it")
 				}
-				if n := sum["repeat-x"]; n >= 3 {
+				if n := sum["repeat-x"]; n >= 3 && !aiQuests {
 					fmt.Println("  • try dw / diw instead of xxxx")
 				}
 				if len(due) > 0 {
@@ -148,7 +167,7 @@ func newCoachQuestCmd() *cobra.Command {
 				if ch, ok := progress.NextChallenge(a.Cat, stars); ok {
 					fmt.Printf("  • next dojo drill: %s (%s)\n", ch.Title, ch.Belt)
 				}
-				if sum["repeat-j"] == 0 && sum["visual-iw-delete"] == 0 && sum["repeat-x"] == 0 && len(due) == 0 {
+				if !aiQuests && sum["repeat-j"] == 0 && sum["visual-iw-delete"] == 0 && sum["repeat-x"] == 0 && len(due) == 0 {
 					fmt.Println("  • light up two new Grammar Grid cells (hjkl stats)")
 				}
 				return nil
@@ -160,37 +179,57 @@ func newCoachQuestCmd() *cobra.Command {
 func newCoachReviewCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "review",
-		Short: "Weekly coach review (AI if configured; otherwise the numbers)",
+		Short: "Weekly coach review and next week's quests (AI if configured; otherwise the numbers)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return withApp(func(a *app.App) error {
 				ctx := context.Background()
-				sum, err := a.Store.CoachSummary(ctx, time.Now().Add(-7*24*time.Hour))
+				week := time.Now().Add(-coach.QuestWeek)
+				bad, err := a.Store.CoachSummary(ctx, week)
 				if err != nil {
 					return err
 				}
-				if len(sum) == 0 {
-					fmt.Println("No coach events this week.")
+				used, _ := a.Store.CoachUsage(ctx, week)
+				if len(bad) == 0 && len(used) == 0 {
+					fmt.Println("No coach events this week. hjkl coach install, then edit as usual.")
 					return nil
-				}
-				var b strings.Builder
-				b.WriteString("counts per anti-pattern this week (no file contents):\n")
-				for pat, n := range sum {
-					fmt.Fprintf(&b, "- %s: %d\n", pat, n)
 				}
 				p, err := ai.FromConfig(a.Cfg)
 				if err != nil {
-					fmt.Print(b.String())
-					fmt.Println("(configure an AI provider for a written review)")
+					printCounts("slow habits this week", bad)
+					printCounts("used well this week", used)
+					fmt.Println("\n(configure an AI provider for a written review and quests: hjkl ai setup)")
 					return nil
 				}
 				stars, _ := a.Store.Stars(ctx)
-				text, err := ai.Ask(ctx, p, "Write a short weekly Vim coaching review from these aggregated stats. No new keys beyond unlocked skills. Stats:\n"+b.String(), progress.UnlockedSkills(a.Cat, stars))
+				unlocked := progress.UnlockedSkills(a.Cat, stars)
+				w, err := ai.Weekly(ctx, p, ai.WeeklyStats{AntiPatterns: bad, Used: used, Patterns: coach.Patterns, Unlocked: unlocked})
 				if err != nil {
 					return err
 				}
-				fmt.Println(text)
+				fmt.Println(w.Review)
+				quests := coach.ValidQuests(w.Quests, unlocked)
+				if len(quests) == 0 {
+					return nil
+				}
+				if err := coach.SaveQuests(ctx, a.Store, coach.QuestSet{Start: time.Now(), Quests: quests}); err != nil {
+					return err
+				}
+				fmt.Println("\nquests for the next 7 days (track them with hjkl coach quest):")
+				for _, q := range quests {
+					fmt.Println("  • " + q.Text)
+				}
 				return nil
 			})
 		},
+	}
+}
+
+func printCounts(title string, m map[string]int) {
+	if len(m) == 0 {
+		return
+	}
+	fmt.Println(title)
+	for k, n := range m {
+		fmt.Printf("  %-20s  %d\n", k, n)
 	}
 }
