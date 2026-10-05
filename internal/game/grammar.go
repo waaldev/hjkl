@@ -20,8 +20,9 @@ var argKeys = map[string]bool{
 }
 
 // LightFromKeys finds operator+motion pairs in a command-key sequence
-// (Normal/operator-pending keys only, never Insert-mode text). Counts are
-// allowed on either side of the operator: 2dw, d2w.
+// (never Insert-mode text). Counts are allowed on either side of the
+// operator: 2dw, d2w. Command-line and search text (:s/dw/x<CR>, /foo<CR>)
+// is skipped.
 func LightFromKeys(cmdKeys string) [][2]string {
 	toks := keys.Parse(cmdKeys)
 	motions := longestFirst(GrammarMotions)
@@ -29,6 +30,12 @@ func LightFromKeys(cmdKeys string) [][2]string {
 	seen := map[string]struct{}{}
 	for i := 0; i < len(toks); {
 		tok := toks[i]
+		if tok == ":" || tok == "/" || tok == "?" {
+			for i++; i < len(toks) && toks[i] != "<CR>" && toks[i] != "<Esc>"; i++ {
+			}
+			i++
+			continue
+		}
 		if argKeys[tok] {
 			i += 2
 			continue

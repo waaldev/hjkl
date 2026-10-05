@@ -47,6 +47,8 @@ type Challenge struct {
 	// not just its result.
 	Require []string `yaml:"require,omitempty" json:"require,omitempty"`
 	Forbid  []string `yaml:"forbid,omitempty" json:"forbid,omitempty"`
+	// TargetRegister makes a register part of the win condition.
+	TargetRegister *Register `yaml:"target_register,omitempty" json:"target_register,omitempty"`
 	// Hints is an optional hand-written ladder, gentlest first. Without it
 	// the ladder is built from the skills, Hint and Solution (HintLadder).
 	Hints []string `yaml:"hints,omitempty" json:"hints,omitempty"`
@@ -139,4 +141,10 @@ func (c *Catalog) index() {
 			c.bySkill[s] = append(c.bySkill[s], ch)
 		}
 	}
+}
+
+// Register is a register name and the text it must hold.
+type Register struct {
+	Name  string `yaml:"name" json:"name"`
+	Value string `yaml:"value" json:"value"`
 }

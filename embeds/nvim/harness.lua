@@ -80,8 +80,9 @@ if type(hints) ~= "table" or #hints == 0 then
   hints = { challenge.hint or "No hint." }
 end
 local hints_used = 0
--- Keys typed outside Insert/Cmdline. Used for the Grammar Grid and technique
--- rules so text you type (e.g. "yes") never counts as a command.
+-- Keys typed outside Insert mode. Used for the Grammar Grid and technique
+-- rules so text you type (e.g. "yes") never counts as a command. Command-line
+-- keys are kept, so rules can check Ex commands (:g, g&, @:).
 local cmd_recorded = {}
 local started_at = vim.uv.hrtime()
 local finished = false
@@ -144,12 +145,25 @@ end
 -- Modes whose keys are commands rather than typed text.
 local function is_cmd_mode(m)
   local c = m:sub(1, 1)
-  return c == "n" or c == "v" or c == "V" or c == "\22"
+  return c == "n" or c == "v" or c == "V" or c == "\22" or c == "c"
+end
+
+-- target_register: { name = "\"", value = "token" } - a yank drill is won
+-- when the register holds the value, not just when the buffer matches.
+local function register_matches()
+  local tr = challenge.target_register
+  if type(tr) ~= "table" or not tr.value then
+    return true
+  end
+  return vim.fn.getreg(tr.name or '"') == tr.value
 end
 
 local function won()
   -- Only Normal mode can win: a change is not finished until <Esc>.
   if not in_normal() then
+    return false
+  end
+  if not register_matches() then
     return false
   end
   if kind == "navigate" then

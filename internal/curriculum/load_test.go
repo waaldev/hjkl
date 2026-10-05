@@ -87,3 +87,21 @@ func TestWithVariant(t *testing.T) {
 		t.Fatal("out of range should return base")
 	}
 }
+
+// Every skill needs a cheat-sheet entry: hjkl cheat and the first rung of
+// the hint ladder are built from it.
+func TestSkillsHaveDocs(t *testing.T) {
+	cat, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	docs := map[string]bool{}
+	for _, d := range SkillDocs {
+		docs[d.ID] = true
+	}
+	for _, s := range cat.Skills() {
+		if !docs[s] {
+			t.Errorf("skill %q has no SkillDocs entry", s)
+		}
+	}
+}

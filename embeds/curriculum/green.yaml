@@ -51,7 +51,7 @@ challenges:
     principle: grammar
     require: [';']
     technique: "this drill is about ; - find once, then repeat the find."
-    brief: Delete every x. Find once, then ; and x.
+    brief: Delete every x. Search for x only once.
     teach: |
       f searches once. ; does it again. Combined with a delete, you hop
       down a delimiter list without counting.
@@ -67,16 +67,18 @@ challenges:
     type: navigate
     skills: [find-char]
     principle: grammar
-    brief: Find the last dash, then hop backward onto the first.
+    brief: Hop dash to dash to the last one, then back one with the reverse key.
     teach: |
-      , plays the last f/t in the opposite direction.
-      f- then $ then , , returns along the same trail.
-    hint: "f- to the first dash is enough for this drill - land on it."
-    start: "a-b-c"
+      , plays the last f/t in the opposite direction. Overshoot with ;
+      and step back with , - no need to retype the character.
+    hint: "f- then ; ; to the last dash, then the reverse of ;"
+    start: "a-b-c-d"
     start_cursor: [1, 1]
-    target_cursor: [1, 2]
-    par: 2
-    solution: "f-"
+    target_cursor: [1, 4]
+    require: [',']
+    technique: "this drill is about , - overshoot with ;, come back with ,."
+    par: 5
+    solution: "f-;;,"
 
   - id: green-05-diw
     title: Delete inner word
@@ -250,7 +252,7 @@ challenges:
     teach: |
       dt{char} deletes till that char. Combined with f you can carve
       a line without counting columns.
-    hint: "dT/  - wait, try dtf? This path is path/to/file. df/ twice or 2df/"
+    hint: "df/ deletes through the next slash. There are two slashes - count them."
     start: "path/to/file"
     target: "file"
     start_cursor: [1, 1]
