@@ -25,6 +25,9 @@ type AIConfig struct {
 
 type ProviderKeys struct {
 	APIKeyEnv string `toml:"api_key_env"`
+	// Effort is sent as output_config.effort (low|medium|high|xhigh|max).
+	// Empty uses "low" for the default model and nothing for others.
+	Effort string `toml:"effort"`
 }
 
 type OpenAIConfig struct {

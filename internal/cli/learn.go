@@ -194,6 +194,9 @@ func printResult(ch curriculum.Challenge, res runner.Result, out progress.Outcom
 	} else if res.OK && out.Stars == 3 {
 		fmt.Println("right keys - next time, faster: speed is how muscle memory shows")
 	}
+	if ch.Type == curriculum.TypeSpeedrun {
+		fmt.Printf("clock %.1fs / target %.1fs (from your first key)\n", float64(res.DurationMS)/1000, float64(ch.TimeTargetMS)/1000)
+	}
 	fmt.Printf("you  %s\n", res.Keys)
 	// On a miss the answer stays hidden: try again, or ask to be shown.
 	if res.OK {

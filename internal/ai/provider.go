@@ -78,9 +78,22 @@ func CompleteJSON(ctx context.Context, p Provider, req Request) (json.RawMessage
 	return json.RawMessage(raw), nil
 }
 
+// DefaultAnthropicModel is used when no model is configured.
+const DefaultAnthropicModel = "claude-opus-5-5"
+
+// fallbackModels accept server-side refusal fallback ("fallbacks":
+// "default"): if a safety classifier declines a request, the API retries it
+// on a suitable model instead of returning a refusal.
+var fallbackModels = map[string]bool{
+	"claude-fable-5-1": true, "claude-opus-5-5": true, "claude-opus-5": true, "claude-sonnet-5-5": true,
+}
+
+const fallbackBeta = "server-side-fallback-2026-07-01"
+
 type Anthropic struct {
 	APIKey  string
 	Model   string
+	Effort  string // output_config.effort; see config.ProviderKeys.Effort
 	BaseURL string
 	Client  HTTPDoer
 }
@@ -90,7 +103,14 @@ func (a Anthropic) Name() string { return "anthropic" }
 func (a Anthropic) Complete(ctx context.Context, req Request) (Response, error) {
 	model := a.Model
 	if model == "" {
-		model = "claude-sonnet-4-5"
+		model = DefaultAnthropicModel
+	}
+	// Sensei answers are short; low effort keeps them quick and cheap on
+	// the default model. Other models only get effort when configured,
+	// because some older ones reject the parameter.
+	effort := a.Effort
+	if effort == "" && model == DefaultAnthropicModel {
+		effort = "low"
 	}
 	base := a.BaseURL
 	if base == "" {
@@ -104,12 +124,20 @@ func (a Anthropic) Complete(ctx context.Context, req Request) (Response, error) 
 		return Response{}, fmt.Errorf("anthropic: missing API key")
 	}
 	body := map[string]any{
-		"model":      model,
-		"max_tokens": 2048,
+		"model": model,
+		// Current models think before answering and thinking counts toward
+		// max_tokens, so a small cap can cut the answer off.
+		"max_tokens": 16000,
 		"messages":   []map[string]string{{"role": "user", "content": req.Prompt}},
 	}
 	if req.System != "" {
 		body["system"] = req.System
+	}
+	if effort != "" {
+		body["output_config"] = map[string]any{"effort": effort}
+	}
+	if fallbackModels[model] {
+		body["fallbacks"] = "default"
 	}
 	raw, _ := json.Marshal(body)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(base, "/")+"/v1/messages", bytes.NewReader(raw))
@@ -119,9 +147,12 @@ func (a Anthropic) Complete(ctx context.Context, req Request) (Response, error) 
 	httpReq.Header.Set("content-type", "application/json")
 	httpReq.Header.Set("x-api-key", key)
 	httpReq.Header.Set("anthropic-version", "2023-06-01")
+	if fallbackModels[model] {
+		httpReq.Header.Set("anthropic-beta", fallbackBeta)
+	}
 	client := a.Client
 	if client == nil {
-		client = &http.Client{Timeout: 60 * time.Second}
+		client = &http.Client{Timeout: 120 * time.Second}
 	}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
@@ -137,9 +168,21 @@ func (a Anthropic) Complete(ctx context.Context, req Request) (Response, error) 
 			Type string `json:"type"`
 			Text string `json:"text"`
 		} `json:"content"`
+		StopReason  string `json:"stop_reason"`
+		StopDetails *struct {
+			Category    string `json:"category"`
+			Explanation string `json:"explanation"`
+		} `json:"stop_details"`
 	}
 	if err := json.Unmarshal(payload, &parsed); err != nil {
 		return Response{}, err
+	}
+	if parsed.StopReason == "refusal" {
+		why := "no details"
+		if d := parsed.StopDetails; d != nil {
+			why = strings.TrimSpace(d.Category + " " + d.Explanation)
+		}
+		return Response{}, fmt.Errorf("anthropic: request declined (%s)", why)
 	}
 	var b strings.Builder
 	for _, c := range parsed.Content {
@@ -189,7 +232,7 @@ func (o OpenAI) Complete(ctx context.Context, req Request) (Response, error) {
 	}
 	client := o.Client
 	if client == nil {
-		client = &http.Client{Timeout: 60 * time.Second}
+		client = &http.Client{Timeout: 120 * time.Second}
 	}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {

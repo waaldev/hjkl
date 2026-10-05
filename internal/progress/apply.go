@@ -29,6 +29,14 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		beltRank = b.Rank
 	}
 	stars := game.Stars(res.OK, res.KeyCount, ch.Par)
+	fluentMS := game.FluentMS(ch.Par)
+	if ch.Type == curriculum.TypeSpeedrun {
+		// Speedruns need both: efficient keys and beating the clock.
+		if s := game.SpeedStars(res.OK, res.DurationMS, ch.TimeTargetMS); s < stars {
+			stars = s
+		}
+		fluentMS = ch.TimeTargetMS
+	}
 	technique := ""
 	if res.OK {
 		ok, msg, err := game.CheckTechnique(res.CmdKeys, ch.Require, ch.Forbid)
@@ -104,7 +112,7 @@ func Apply(ctx context.Context, st *store.Store, cat *curriculum.Catalog, ch cur
 		DotScore:   game.DotScore(res.CmdKeys, ch.Principle),
 		Technique:  technique,
 		HintsUsed:  res.HintsUsed,
-		Fluent:     res.OK && stars == 3 && res.DurationMS <= game.FluentMS(ch.Par),
+		Fluent:     res.OK && stars == 3 && res.DurationMS <= fluentMS,
 	}, nil
 }
 

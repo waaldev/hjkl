@@ -339,3 +339,32 @@ challenges:
     require: ['normal<Space>@q']
     technique: "this drill is about :normal @q - run the macro on every line in parallel."
     solution: "qq0i\"<Esc>A\"<Esc>q:2,$normal @q<CR>"
+
+  - id: purple-16-speedrun-macro
+    title: Speedrun - checklist macro
+    type: speedrun
+    skills: [macros]
+    principle: macros
+    brief: Turn every line into a checklist item. The clock starts on your first key.
+    teach: |
+      Record once, play with a count. The macro ends with j so each run
+      sets up the next one, and the count can overshoot safely: at the
+      last line j fails and the macro aborts.
+    hint: "qq, insert the box at the line start, Esc, j, q - then a count and @q."
+    start: |
+      eggs
+      milk
+      bread
+      tea
+      jam
+    target: |
+      - [ ] eggs
+      - [ ] milk
+      - [ ] bread
+      - [ ] tea
+      - [ ] jam
+    start_cursor: [1, 1]
+    require: ['@q']
+    time_target_ms: 10000
+    solution: "qqI- [ ] <Esc>jq4@q"
+    language: markdown

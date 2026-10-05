@@ -80,3 +80,28 @@ func TestNextInterleavesReviews(t *testing.T) {
 		t.Fatal("counter should reset after a review")
 	}
 }
+
+func TestSpeedrunNeedsKeysAndClock(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	cat, err := curriculum.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, ok := cat.Challenge("yellow-15-speedrun-lines")
+	if !ok {
+		t.Fatal("speedrun drill missing")
+	}
+	fast := runner.Result{OK: true, KeyCount: ch.Par, DurationMS: ch.TimeTargetMS - 1}
+	if out, _ := Apply(ctx, st, cat, ch, fast); out.Stars != 3 || !out.Fluent {
+		t.Fatalf("fast at par: %+v", out)
+	}
+	slow := runner.Result{OK: true, KeyCount: ch.Par, DurationMS: ch.TimeTargetMS * 2}
+	if out, _ := Apply(ctx, st, cat, ch, slow); out.Stars != 1 {
+		t.Fatalf("par keys but twice the clock should be one star: %+v", out)
+	}
+}
