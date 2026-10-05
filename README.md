@@ -46,9 +46,10 @@ It stores counts only, never file contents.
 
 Drills, the dojo and the coach all work offline. With a provider set up
 (`hjkl ai setup`: Anthropic, any OpenAI-compatible endpoint including
-Ollama, or a CLI agent like opencode), hjkl can explain your runs and
+Ollama, or a CLI agent like opencode), hjkl can explain your runs, answer
+questions (`hjkl ask`, followed by a drill to practice the answer) and
 generate drills. Generated drills are replayed in Neovim and dropped if
-they don't work.
+they don't work; the ones that pass are saved for your reviews.
 
 **`:HjklWhy`** finds a shorter way to make your last edit in your own
 project. The suggestion is replayed in Neovim and shown only if it

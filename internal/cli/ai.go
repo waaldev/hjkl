@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -106,9 +107,10 @@ func newAISetupCmd() *cobra.Command {
 }
 
 func newAskCmd() *cobra.Command {
-	return &cobra.Command{
+	var noDrill bool
+	cmd := &cobra.Command{
 		Use:   "ask [question]",
-		Short: "Ask the sensei (optional AI). Never types for you.",
+		Short: "Ask the sensei (optional AI), then practice the answer. Never types for you.",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return withApp(func(a *app.App) error {
@@ -116,17 +118,28 @@ func newAskCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+				question := strings.Join(args, " ")
 				stars, _ := a.Store.Stars(context.Background())
-				text, err := ai.Ask(context.Background(), p, strings.Join(args, " "), progress.UnlockedSkills(a.Cat, stars))
+				unlocked := progress.UnlockedSkills(a.Cat, stars)
+				answer, err := ai.Ask(context.Background(), p, question, unlocked)
 				if err != nil {
 					return err
 				}
-				fmt.Println(text)
-				fmt.Println("\n(You press the keys. Try hjkl drill --ai after this.)")
-				return nil
+				fmt.Println(answer)
+				// An answer you read is forgotten; one you type sticks.
+				if noDrill || !isTTY() {
+					return nil
+				}
+				fmt.Print("\nPractice it now in a short drill? [Y/n] ")
+				if r := strings.ToLower(strings.TrimSpace(readLine())); r != "" && r != "y" && r != "yes" {
+					return nil
+				}
+				return generateAndPlay(a, p, ai.DrillRequest{Question: question, Answer: answer, Unlocked: unlocked})
 			})
 		},
 	}
+	cmd.Flags().BoolVar(&noDrill, "no-drill", false, "just answer, no practice drill")
+	return cmd
 }
 
 func runAIDrill(a *app.App, skill string) error {
@@ -138,14 +151,29 @@ func runAIDrill(a *app.App, skill string) error {
 		skill = "operators"
 	}
 	stars, _ := a.Store.Stars(context.Background())
-	ch, err := ai.GenerateChallenge(context.Background(), p, skill, "go", progress.UnlockedSkills(a.Cat, stars))
+	return generateAndPlay(a, p, ai.DrillRequest{Skill: skill, Unlocked: progress.UnlockedSkills(a.Cat, stars)})
+}
+
+// generateAndPlay writes a drill with the AI, keeps it only if nvim
+// confirms it, saves it to the personal drills (so reviews can reuse it,
+// offline), and plays it.
+func generateAndPlay(a *app.App, p ai.Provider, req ai.DrillRequest) error {
+	if req.Language == "" {
+		req.Language = "go"
+	}
+	fmt.Println("writing a drill and checking it in nvim…")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	ch, err := ai.GenerateDrill(ctx, p, req, ai.NvimVerifier(a.Cfg.Nvim))
 	if err != nil {
 		return err
 	}
-	if err := ai.VerifyGate(context.Background(), ch, skill, a.Cfg.Nvim); err != nil {
-		return err
+	if _, err := savePersonal(ch); err != nil {
+		fmt.Println("(could not save the drill for reviews:", err, ")")
+	} else {
+		a.Cat.AddPersonal(ch)
+		fmt.Println("checked in nvim and saved - it will come back in your reviews")
 	}
-	fmt.Println("generated drill passed the verify gate")
 	return playOne(a, ch)
 }
 
