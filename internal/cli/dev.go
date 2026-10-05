@@ -69,7 +69,7 @@ func newDevVerifyCmd() *cobra.Command {
 					fmt.Printf("FAIL technique: %v%s\n", err, msg)
 					continue
 				}
-				if ch.Type != curriculum.TypeNavigate && ch.Target != "" && ch.Target == ch.Start {
+				if ch.Type != curriculum.TypeNavigate && ch.TargetRegister == nil && ch.Target == ch.Start {
 					failed++
 					fmt.Println("FAIL start equals target")
 					continue

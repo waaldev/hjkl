@@ -83,9 +83,14 @@ Without rules, any route that reaches the target under par earns three
 stars, even the habit the drill replaces (`3dd` in a "don't count, repeat"
 drill). Use `require` / `forbid` so the stars follow the technique:
 
+- Keys are in Vim notation: a space is `<Space>`, Enter is `<CR>`, so
+  `:normal @q` is matched by `normal<Space>@q`.
 - They are regexps matched against the **command keys**: keys typed in
-  Normal, operator-pending and Visual mode. Text typed in Insert mode or on
-  the command line is excluded, so `cwyes<Esc>` has command keys `cw`.
+  Normal, operator-pending, Visual and command-line mode. Text typed in
+  Insert mode is excluded, so `cwyes<Esc>` has command keys `cw`, while
+  `:g/x/d<CR>` is kept so rules can check Ex commands.
+- `target_register: { name: '"', value: "token" }` makes a register part
+  of the win condition (for yank drills).
 - A failed rule caps the run at one star and shows `technique`.
 - `hjkl dev verify` fails if the canonical solution breaks its own rules.
 - Every `dot` drill should `require: ['\.']`.

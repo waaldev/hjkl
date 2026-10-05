@@ -48,7 +48,7 @@ challenges:
     type: navigate
     skills: [words]
     principle: grammar
-    brief: Land on the start of the last word. b, not hhhhh.
+    brief: Land on the start of the last word without walking letter by letter.
     teach: |
       b is w in reverse. e lands on the end of a word; ge on the end of
       the previous one.

@@ -35,3 +35,16 @@ func TestStars(t *testing.T) {
 		t.Fatal("over 2x par should be 1")
 	}
 }
+
+func TestUnlockSticksWhenBeltGrows(t *testing.T) {
+	belts := []string{"a", "b"}
+	// a had 1 drill, cleared → b unlocked and played. Then a grows to 4.
+	chs := map[string]string{"a1": "a", "a2": "a", "a3": "a", "a4": "a", "b1": "b"}
+	stars := map[string]int{"a1": 3, "b1": 2}
+	if !Unlocked(belts, chs, stars)["b"] {
+		t.Fatal("a belt with progress must stay unlocked")
+	}
+	if Unlocked(belts, chs, map[string]int{"a1": 3})["b"] {
+		t.Fatal("an untouched belt still needs 80% of the previous one")
+	}
+}

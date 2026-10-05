@@ -14,7 +14,7 @@ challenges:
     type: transform
     skills: [operators, words]
     principle: grammar
-    brief: Delete the first word with dw, not xxxxx.
+    brief: Remove the first word in one move, not one letter at a time.
     teach: |
       d is an operator. It waits for a motion.
 
@@ -141,7 +141,7 @@ challenges:
     principle: dot
     require: ['\.']
     technique: "this drill is about . - change once, then let . repeat it."
-    brief: Rename every cat. Change once, then .
+    brief: Rename every cat. Type dog only once.
     teach: |
       Don't count, repeat.
 
@@ -170,7 +170,7 @@ challenges:
     principle: dot
     require: ['\.']
     technique: "this drill is about . - delete once, then let . repeat it."
-    brief: Strip the first word on each line with dw and .
+    brief: Strip the first word on each line. Do the work once.
     teach: |
       dwj. - delete-word, next line, repeat.
 
@@ -243,20 +243,20 @@ challenges:
 
   - id: orange-13-ye
     title: Yank to end of word
-    type: navigate
+    type: transform
     skills: [operators, words]
     principle: grammar
-    brief: After ye, land on the end of the word (the yank motion).
+    brief: Yank the first word, just the word - not the space after it.
     teach: |
       ye yanks through the last character of the word. e is inclusive.
       w is exclusive. That difference is why cw is "special" (it acts
       like ce) and why ye is a favorite for duplicating a token.
-    hint: "e lands on the last letter. This drill just wants e."
+    hint: "y waits for a motion. Which motion stops on the last letter?"
     start: "token rest"
+    target_register: { name: '"', value: "token" }
     start_cursor: [1, 1]
-    target_cursor: [1, 5]
-    par: 1
-    solution: "e"
+    par: 2
+    solution: "ye"
 
   - id: orange-14-dot-count-choice
     title: Don't count, repeat
@@ -266,7 +266,7 @@ challenges:
     require: ['\.']
     forbid: ['[2-9]dd']
     technique: "this drill is about dd then . - one undo per line, not a count."
-    brief: Delete a word on three lines. Use . so each line undoes alone.
+    brief: Delete the three gone lines so each one undoes on its own.
     teach: |
       3dd is one undo for three lines. dd. . is three undos.
 
@@ -304,21 +304,22 @@ challenges:
     type: boss
     skills: [operators, words, dot]
     principle: grammar
-    brief: add becomes sum. Only the name.
+    brief: Turn add(x) into sum(x, y) and return x + y.
     teach: |
       Orange kit: d c y plus w e $ 0 G gg, and .
 
-      One cw. Esc. That is the whole edit.
-    hint: "cwsum Esc"
+      Three edits, three tools: change a word, hop by words and append
+      inside the line, then append at the end of the next line.
+    hint: "cw for the name, w w a for the parameter, j A for the return."
     start: |
       func add(x int) int {
       	return x
       }
     target: |
-      func sum(x int) int {
-      	return x
+      func sum(x, y int) int {
+      	return x + y
       }
     start_cursor: [1, 6]
-    par: 6
-    solution: "cwsum<Esc>"
+    par: 20
+    solution: "cwsum<Esc>wwa, y<Esc>jA + y<Esc>"
     language: go
