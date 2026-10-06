@@ -1,5 +1,7 @@
 # hjkl
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/waaldev/hjkl.svg)](https://pkg.go.dev/github.com/waaldev/hjkl)
+
 Just for fun: a dojo for learning Vim in the AI era. You press the keys
 yourself, in real Neovim.
 
